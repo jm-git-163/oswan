@@ -7,7 +7,7 @@ import {
   openInExternalBrowser,
 } from '../lib/browser';
 import type { Challenge } from '../lib/types';
-import { challengeShareUrl } from '../lib/storage';
+import { challengeShareUrl, challengeShareUrlLabel } from '../lib/storage';
 import {
   canNativeShare,
   challengeShareText,
@@ -24,7 +24,7 @@ type Props = {
   onClose: () => void;
 };
 
-/** Always shown when sending a challenge — link-first so friends can accept & squat. */
+/** Thumbnail-first share with short clean invite URL (no base64 junk). */
 export function ShareSheet({ open, challenge, onClose }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -65,8 +65,10 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
 
   const url = challengeShareUrl(challenge);
   const text = challengeShareText(challenge, url);
+  const label = challengeShareUrlLabel(challenge);
 
-  const sendLink = () => {
+  /** Default: thumbnail + short link together */
+  const sendChallenge = () => {
     setBusy(true);
     setStatus(null);
     void (async () => {
@@ -75,12 +77,15 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
         setBusy(false);
         setStatus(
           copied
-            ? '카톡 안 브라우저에서는 공유가 막혀요. 문구를 복사했어요 — Chrome에서 오스완을 연 뒤 다시 보내 주세요.'
-            : '카톡 안 브라우저에서는 공유가 막혀요. 아래 「Chrome에서 열기」를 눌러 주세요.',
+            ? '카톡 안에서는 공유가 막혀요. 문구를 복사했어요 — Chrome에서 열고 다시 보내 주세요.'
+            : '카톡 안에서는 공유가 막혀요. 「Chrome에서 열기」를 눌러 주세요.',
         );
         return;
       }
-      const r = await shareChallengeInvite(challenge, { preferImage: false });
+      const r = await shareChallengeInvite(challenge, {
+        preparedFile: fileRef.current,
+        preferImage: true,
+      });
       setBusy(false);
       if (r === 'shared') {
         onClose();
@@ -93,35 +98,14 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
       const k = await openKakaoWithCopiedText(text);
       setStatus(
         k === 'opened'
-          ? '도전 링크를 복사했고 카카오톡을 열었어요. 채팅에 붙여넣기 하세요.'
-          : '도전 링크를 복사했어요. 카톡에 붙여넣기 하세요.',
+          ? '짧은 링크를 복사했고 카카오톡을 열었어요. 채팅에 붙여넣기 하세요.'
+          : '짧은 링크를 복사했어요. 카톡에 붙여넣기 하세요.',
       );
     })();
   };
 
-  const sendImage = () => {
-    setBusy(true);
-    setStatus(null);
-    void (async () => {
-      const r = await shareChallengeInvite(challenge, {
-        preparedFile: fileRef.current,
-        preferImage: true,
-      });
-      setBusy(false);
-      if (r === 'shared') {
-        onClose();
-        return;
-      }
-      if (r === 'cancelled') {
-        setStatus('공유가 취소됐어요.');
-        return;
-      }
-      setStatus('이미지 공유에 실패했어요. 「링크로 보내기」를 써 주세요.');
-    })();
-  };
-
   const openChrome = () => {
-    void openInExternalBrowser(window.location.origin + '/');
+    void openInExternalBrowser(url);
   };
 
   return (
@@ -158,7 +142,7 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
           <div>
             <div style={{ fontWeight: 800, fontSize: 18 }}>도전장 보내기</div>
             <div className="meta" style={{ color: 'var(--accent)', fontWeight: 600 }}>
-              링크로 보내야 상대가 수락·스쿼트 가능
+              썸네일 + 짧은 링크
             </div>
           </div>
         </div>
@@ -175,34 +159,49 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
               padding: 12,
             }}
           >
-            {kakao ? '카카오톡' : '앱 안'} 브라우저에서는 도전장 보내기·카메라가 잘 안 됩니다.
+            {kakao ? '카카오톡' : '앱 안'} 브라우저에서는 보내기·카메라가 제한돼요.
             <button className="cta-primary" style={{ marginTop: 10 }} onClick={openChrome}>
-              Chrome / Safari에서 열기
+              Chrome에서 도전 열기
             </button>
           </div>
         )}
 
         {preview && (
-          <img
-            src={preview}
-            alt="도전장 미리보기"
+          <button
+            type="button"
+            onClick={sendChallenge}
+            disabled={busy || !fileReady}
             style={{
+              display: 'block',
               width: '100%',
+              padding: 0,
+              border: '1px solid rgba(200,245,74,0.35)',
               borderRadius: 16,
-              marginBottom: 14,
-              border: '1px solid rgba(200,245,74,0.25)',
-              aspectRatio: '4/5',
-              objectFit: 'cover',
+              overflow: 'hidden',
+              marginBottom: 12,
               background: '#111',
             }}
-          />
+          >
+            <img
+              src={preview}
+              alt="도전장 썸네일 — 누르면 공유"
+              style={{
+                width: '100%',
+                aspectRatio: '4/5',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          </button>
         )}
 
         <p style={{ fontWeight: 700, marginBottom: 4 }}>
           {challenge.fromNickname} · {challenge.targetReps}개 도전
         </p>
-        <p className="meta" style={{ marginBottom: 10, lineHeight: 1.45, wordBreak: 'break-all', fontSize: 12 }}>
-          {url}
+        <p className="meta" style={{ marginBottom: 12, fontSize: 13 }}>
+          썸네일을 누르거나 아래 버튼으로 보내세요.
+          <br />
+          <span style={{ color: 'var(--accent)' }}>{label}</span>
         </p>
 
         {status && (
@@ -221,11 +220,8 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
         )}
 
         <div style={{ display: 'grid', gap: 8 }}>
-          <button className="cta-primary" disabled={busy} onClick={sendLink}>
-            {busy ? '여는 중…' : native ? '카톡·메신저로 링크 보내기' : '링크 복사 후 카톡 열기'}
-          </button>
-          <button className="cta-secondary" disabled={busy || !fileReady} onClick={sendImage}>
-            썸네일 이미지도 함께 (선택)
+          <button className="cta-primary" disabled={busy || !fileReady} onClick={sendChallenge}>
+            {busy ? '여는 중…' : native ? '카톡·메신저로 도전장 보내기' : '링크 복사 후 카톡 열기'}
           </button>
           <button
             className="cta-secondary"
@@ -233,7 +229,7 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
               openSmsShare(text);
             }}
           >
-            문자로 링크 보내기
+            문자로 보내기
           </button>
           <button
             className="cta-secondary"
@@ -245,9 +241,11 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
           </button>
           <button
             className="cta-secondary"
-            onClick={() => void navigator.clipboard.writeText(text).then(() => setStatus('링크·문구를 복사했어요.'))}
+            onClick={() =>
+              void navigator.clipboard.writeText(url).then(() => setStatus('짧은 링크를 복사했어요.'))
+            }
           >
-            링크만 복사
+            짧은 링크만 복사
           </button>
 
           {NATIVE_APP.available ? (
@@ -260,7 +258,7 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
             </a>
           ) : (
             <div className="meta" style={{ textAlign: 'center', fontSize: 12, padding: '8px 0' }}>
-              향후 오스완 앱 출시 시 · 앱 설치 후 도전 시작 안내 예정
+              향후 오스완 앱 출시 시 · 앱에서 도전 시작 안내 예정
             </div>
           )}
 

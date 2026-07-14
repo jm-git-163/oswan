@@ -237,15 +237,46 @@ export function importChallengeFromPayload(payload: Challenge): Challenge {
   return payload;
 }
 
+/** Clean invite URL — no base64 payload (looks bad in Kakao). */
 export function challengeShareUrl(challenge: Challenge): string {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const url = new URL(`${window.location.origin}${base}/c/${challenge.id}`);
-  // payload keeps invite working across devices even before remote sync
-  url.searchParams.set(
-    'p',
-    btoa(unescape(encodeURIComponent(JSON.stringify(challenge)))),
-  );
+  url.searchParams.set('n', challenge.fromNickname);
+  url.searchParams.set('r', String(challenge.targetReps));
+  url.searchParams.set('f', challenge.fromSoftUserId);
+  if (challenge.deadlineAt) {
+    url.searchParams.set('dl', challenge.deadlineAt);
+  }
   return url.toString();
+}
+
+/** Display-friendly short form for UI (not for sharing raw). */
+export function challengeShareUrlLabel(challenge: Challenge): string {
+  return `oswan.vercel.app/c/${challenge.id.slice(0, 8)}…`;
+}
+
+/** Rebuild invite from compact query when recipient has no local/remote copy. */
+export function challengeFromCompact(
+  id: string,
+  params: { n: string | null; r: string | null; f: string | null; dl: string | null },
+): Challenge | null {
+  if (!params.n || !params.r || !params.f) return null;
+  const targetReps = Math.max(1, Number(params.r) || 30);
+  const deadlineAt =
+    params.dl && !Number.isNaN(+new Date(params.dl))
+      ? params.dl
+      : new Date(Date.now() + 24 * 3600_000).toISOString();
+  return {
+    id,
+    fromSoftUserId: params.f,
+    fromNickname: params.n,
+    targetReps,
+    deadlineAt,
+    status: 'open',
+    ruleVersion: 'hss-v3',
+    winMode: 'clear_target',
+    createdAt: new Date().toISOString(),
+  };
 }
 
 export function decodeChallengePayload(raw: string | null): Challenge | null {

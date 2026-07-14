@@ -6,6 +6,7 @@ import { ShareSheet } from '../components/ShareSheet';
 import { fetchRemoteChallenge } from '../lib/api';
 import {
   acceptChallenge,
+  challengeFromCompact,
   decodeChallengePayload,
   getChallenge,
   importChallengeFromPayload,
@@ -25,8 +26,19 @@ export function ChallengePage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // legacy long ?p= payload still supported
       const payload = decodeChallengePayload(params.get('p'));
       if (payload) importChallengeFromPayload(payload);
+
+      // compact ?n=&r=&f= (clean share links)
+      const compact = challengeFromCompact(id, {
+        n: params.get('n'),
+        r: params.get('r'),
+        f: params.get('f'),
+        dl: params.get('dl'),
+      });
+      if (compact && !getChallenge(id)) importChallengeFromPayload(compact);
+
       let local = getChallenge(id);
       if (!local) {
         const remote = await fetchRemoteChallenge(id);
@@ -35,6 +47,7 @@ export function ChallengePage() {
           local = remote;
         }
       }
+      if (!local && compact) local = compact;
       if (!cancelled) setChallenge(local);
     })();
     return () => {
