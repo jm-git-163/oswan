@@ -46,7 +46,6 @@ export function usePose(
         setReady(true);
       } catch (e) {
         console.error(e);
-        // CPU fallback
         try {
           const vision = await FilesetResolver.forVisionTasks(WASM);
           const landmarker = await PoseLandmarker.createFromOptions(vision, {
@@ -116,6 +115,28 @@ export function usePose(
   return { ready, error, landmarks };
 }
 
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+export function stopCamera(stream: MediaStream | null) {
+  stream?.getTracks().forEach((t) => {
+    try {
+      t.stop();
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+/** Release any stream already bound to this video element. */
+export function releaseVideo(video: HTMLVideoElement | null) {
+  if (!video) return;
+  const prev = video.srcObject;
+  if (prev instanceof MediaStream) stopCamera(prev);
+  video.srcObject = null;
+}
+
 export async function startCamera(
   video: HTMLVideoElement,
   facingMode: 'user' | 'environment' = 'user',
@@ -124,37 +145,39 @@ export async function startCamera(
     throw new Error('getUserMedia unsupported');
   }
 
+  // Always free previous capture first (fixes NotReadableError from stale locks)
+  releaseVideo(video);
+  await sleep(250);
+
   video.setAttribute('playsinline', 'true');
   video.setAttribute('webkit-playsinline', 'true');
   video.muted = true;
+  video.playsInline = true;
 
-  let stream: MediaStream;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
+  const attempts: MediaStreamConstraints[] = [
+    {
       audio: false,
-      video: {
-        facingMode: { ideal: facingMode },
-        width: { ideal: 720 },
-        height: { ideal: 1280 },
-      },
-    });
-  } catch {
-    // Looser fallback for some Android WebViews
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: true,
-    });
-  }
+      video: { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 } },
+    },
+    { audio: false, video: { facingMode } },
+    { audio: false, video: true },
+  ];
 
-  video.srcObject = stream;
-  try {
-    await video.play();
-  } catch {
-    // Autoplay policies — muted + playsinline usually OK after user gesture
+  let lastError: unknown;
+  for (const constraints of attempts) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = stream;
+      try {
+        await video.play();
+      } catch {
+        /* muted + user gesture should be enough */
+      }
+      return stream;
+    } catch (err) {
+      lastError = err;
+      await sleep(350);
+    }
   }
-  return stream;
-}
-
-export function stopCamera(stream: MediaStream | null) {
-  stream?.getTracks().forEach((t) => t.stop());
+  throw lastError;
 }

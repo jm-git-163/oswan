@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { startCamera, stopCamera, usePose } from '../hooks/usePose';
+import { startCamera, stopCamera, releaseVideo, usePose } from '../hooks/usePose';
 import { stanceOk, useSquatEngine } from '../hooks/useSquatEngine';
 import { addSession, completeChallenge } from '../lib/storage';
 import { RULE_VERSION } from '../lib/types';
@@ -20,7 +20,7 @@ function cameraErrorMessage(err: unknown): string {
     return '카메라를 찾지 못했어요. 다른 기기나 브라우저로 시도해 주세요.';
   }
   if (name === 'NotReadableError' || name === 'TrackStartError') {
-    return '카메라가 다른 앱에서 사용 중일 수 있어요. 닫고 다시 시도해 주세요.';
+    return '카메라를 잠글 수 없어요. 다른 탭·앱(줌, 카메라앱, oswan 다른 탭)을 모두 닫고, 이 페이지를 새로고침한 뒤 다시 「허용하기」를 눌러 주세요.';
   }
   return '카메라를 켜지 못했어요. 허용 버튼을 다시 눌러 주세요.';
 }
@@ -66,6 +66,9 @@ export function SessionPage() {
         setPhase('need_perm');
         return;
       }
+      stopCamera(streamRef.current);
+      streamRef.current = null;
+      releaseVideo(video);
       // Must run inside this click/tap handler for mobile browsers
       const stream = await startCamera(video, 'user');
       streamRef.current = stream;
