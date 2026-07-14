@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ModelSquatExample } from '../components/ModelSquatExample';
 import { startCamera, stopCamera, releaseVideo, usePose } from '../hooks/usePose';
-import { playRepBeep, stanceOk, useSquatEngine } from '../hooks/useSquatEngine';
+import { HEAD_GUIDE, playRepBeep, stanceOk, useSquatEngine } from '../hooks/useSquatEngine';
 import { addSession, completeChallenge } from '../lib/storage';
 import { RULE_VERSION } from '../lib/types';
 import { useAppStore } from '../store';
@@ -290,74 +290,49 @@ export function SessionPage() {
           />
           {(phase === 'stance' || phase === 'calibrating') && (
             <>
-              {/* 셀피 준비: 머리·어깨·상체만 (발목/전신 없음) */}
-              <svg
-                viewBox="0 0 200 240"
+              {/* 머리 가이드만 — HSS 카운트 기준점 */}
+              <div
                 style={{
                   position: 'absolute',
-                  left: '50%',
-                  top: '40%',
+                  left: `${HEAD_GUIDE.cx * 100}%`,
+                  top: `${HEAD_GUIDE.cy * 100}%`,
+                  width: `${HEAD_GUIDE.rx * 2 * 100}%`,
+                  height: `${HEAD_GUIDE.ry * 2 * 100}%`,
                   transform: 'translate(-50%, -50%)',
-                  width: '58%',
-                  maxWidth: 280,
-                  opacity: stance.ok ? 0.95 : 0.55,
-                  transition: 'opacity 0.25s',
+                  borderRadius: '50%',
+                  border: `3px ${stance.ok ? 'solid' : 'dashed'} ${stance.ok ? 'var(--accent)' : '#fff'}`,
+                  boxShadow: stance.ok
+                    ? '0 0 0 9999px rgba(0,0,0,0.35), 0 0 24px rgba(200,245,74,0.45)'
+                    : '0 0 0 9999px rgba(0,0,0,0.4)',
+                  opacity: 0.95,
                   pointerEvents: 'none',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
                 }}
-              >
-                {/* head */}
-                <circle
-                  cx="100"
-                  cy="52"
-                  r="36"
-                  fill="none"
-                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                  strokeWidth="4"
+              />
+              {stance.head && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    // preview is CSS-mirrored; flip landmark x to match
+                    left: `${(1 - stance.head.x) * 100}%`,
+                    top: `${stance.head.y * 100}%`,
+                    width: 14,
+                    height: 14,
+                    marginLeft: -7,
+                    marginTop: -7,
+                    borderRadius: '50%',
+                    background: stance.ok ? 'var(--accent)' : '#fff',
+                    boxShadow: '0 0 10px rgba(0,0,0,0.5)',
+                    pointerEvents: 'none',
+                  }}
                 />
-                {/* neck */}
-                <line
-                  x1="100"
-                  y1="88"
-                  x2="100"
-                  y2="108"
-                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                />
-                {/* shoulders */}
-                <path
-                  d="M40 118 Q100 100 160 118"
-                  fill="none"
-                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                />
-                {/* upper arms relaxed */}
-                <path
-                  d="M40 118 L28 175 M160 118 L172 175"
-                  fill="none"
-                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                />
-                {/* chest / upper torso oval hint */}
-                <ellipse
-                  cx="100"
-                  cy="168"
-                  rx="42"
-                  ry="36"
-                  fill="none"
-                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                  strokeWidth="3.5"
-                  opacity="0.85"
-                />
-              </svg>
+              )}
               <div
                 style={{
                   position: 'absolute',
                   left: 16,
                   right: 16,
-                  top: 68,
+                  top: 72,
                   textAlign: 'center',
                   pointerEvents: 'none',
                 }}
@@ -368,20 +343,16 @@ export function SessionPage() {
                     background: 'rgba(0,0,0,0.72)',
                     borderRadius: 14,
                     padding: '10px 14px',
-                    fontSize: 13,
+                    fontSize: 14,
                     lineHeight: 1.45,
                     fontWeight: 600,
                     color: '#fff',
                   }}
                 >
-                  스마트폰 바로 앞에서 OK
-                  <br />
-                  <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
-                    머리·어깨만 보이게 · 팔은 자연스럽게
-                  </span>
+                  <span style={{ color: 'var(--accent)', fontWeight: 800 }}>머리를 원 안에</span>
                   <br />
                   <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12 }}>
-                    발목·전신 맞출 필요 없음
+                    맞추면 그 기준으로 스쿼트를 세어요
                   </span>
                 </div>
               </div>

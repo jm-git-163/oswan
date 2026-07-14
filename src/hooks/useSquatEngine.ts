@@ -33,67 +33,64 @@ export function useSquatEngine(landmarks: Landmark[], active: boolean) {
 }
 
 /**
- * 스마트폰 바로 앞(셀피·책상 거치) 준비 자세.
- * HSS 카운터 = 머리·어깨만 있으면 됨. 발목·전신·허리 요구 없음.
+ * 화면 위쪽 「머리 가이드」원 — SessionPage SVG와 동일한 정규화 좌표.
+ * HSS 카운트는 코(머리) y와 어깨 차이로 동작하므로, 이 위치에 머리를 두면
+ * 캘리브·카운트가 안정적임.
+ */
+export const HEAD_GUIDE = {
+  /** 화면 가로 중앙 */
+  cx: 0.5,
+  /** 위에서 ~28% — 셀피에서 자연스러운 얼굴 위치 */
+  cy: 0.28,
+  /** 수용 반경 (정규화, x·y 대략 타원) */
+  rx: 0.16,
+  ry: 0.12,
+};
+
+/**
+ * 머리만 가이드 원에 맞추면 OK. 전신·발목·어깨 폭 요구 없음.
+ * (어깨는 HSS용으로 보이기만 하면 soft — 판정 강제는 머리)
  */
 export function stanceOk(landmarks: Landmark[]): {
   ok: boolean;
   hint: string;
   level: 'far' | 'ok' | 'close' | 'missing';
+  /** nose in frame for drawing live marker */
+  head?: { x: number; y: number };
 } {
-  if (landmarks.length < 7) {
+  if (landmarks.length < 1) {
     return { ok: false, hint: '카메라 앞에 서 주세요', level: 'missing' };
   }
 
   const vis = (l: Landmark | undefined) => l?.visibility ?? l?.score ?? 0;
   const nose = landmarks[0];
-  const lSh = landmarks[5];
-  const rSh = landmarks[6];
 
-  if (!nose || vis(nose) < 0.3) {
-    return { ok: false, hint: '얼굴이 보이게 카메라 앞에 서 주세요', level: 'missing' };
+  if (!nose || vis(nose) < 0.28) {
+    return { ok: false, hint: '얼굴이 보이게 서 주세요', level: 'missing' };
   }
 
-  const shOk = vis(lSh) >= 0.25 || vis(rSh) >= 0.25;
-  if (!shOk) {
-    return { ok: false, hint: '어깨까지 들어오게 서 주세요', level: 'missing' };
+  // Landmark x is mirrored relative to mirrored preview — SVG overlay is also
+  // drawn on mirrored video, so use nose.x as-is against guide center.
+  const dx = (nose.x - HEAD_GUIDE.cx) / HEAD_GUIDE.rx;
+  const dy = (nose.y - HEAD_GUIDE.cy) / HEAD_GUIDE.ry;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  const head = { x: nose.x, y: nose.y };
+
+  if (dist <= 1) {
+    return { ok: true, hint: '좋아요. 머리 고정 · 스쿼트 준비', level: 'ok', head };
   }
 
-  // 얼굴이 너무 아래 = 너무 가깝거나 폰 각도가 위를 봄
-  if (nose.y > 0.62) {
-    return { ok: false, hint: '폰을 조금 내려 · 얼굴이 화면 위쪽에', level: 'close' };
+  if (nose.y < HEAD_GUIDE.cy - HEAD_GUIDE.ry) {
+    return { ok: false, hint: '머리를 조금 아래로 · 원 안에', level: 'far', head };
   }
-
-  // 얼굴이 너무 위/작음
-  if (nose.y < 0.08) {
-    return { ok: false, hint: '폰을 눈높이에 맞추고 정면을 봐 주세요', level: 'far' };
+  if (nose.y > HEAD_GUIDE.cy + HEAD_GUIDE.ry) {
+    return { ok: false, hint: '머리를 조금 위로 · 원 안에', level: 'close', head };
   }
-
-  const shoulderSpan =
-    lSh && rSh && vis(lSh) >= 0.2 && vis(rSh) >= 0.2
-      ? Math.abs(lSh.x - rSh.x)
-      : 0;
-
-  // 어깨가 거의 화면을 채움 = 너무 가까움
-  if (shoulderSpan > 0.72) {
-    return { ok: false, hint: '팔 하나 정도만 뒤로 — 머리·어깨가 여유 있게', level: 'close' };
+  if (Math.abs(nose.x - HEAD_GUIDE.cx) > HEAD_GUIDE.rx) {
+    return { ok: false, hint: '머리를 가운데 원에 맞추세요', level: 'missing', head };
   }
-
-  // 어깨가 너무 작음 = 너무 멂 (선택적으로만 요청)
-  if (shoulderSpan > 0 && shoulderSpan < 0.12) {
-    return { ok: false, hint: '한 걸음만 앞으로 — 얼굴·어깨가 크게', level: 'far' };
-  }
-
-  const shY =
-    lSh && rSh
-      ? (lSh.y + rSh.y) / 2
-      : (lSh?.y ?? rSh?.y ?? nose.y + 0.15);
-
-  if (shY + 0.02 < nose.y) {
-    return { ok: false, hint: '폰을 세로로 들고 정면을 봐 주세요', level: 'missing' };
-  }
-
-  return { ok: true, hint: '좋아요. 이 자세로 스쿼트 준비…', level: 'ok' };
+  return { ok: false, hint: '머리를 원 안에 맞추세요', level: 'missing', head };
 }
 
 /** Soft click for each counted rep (no asset file). */
