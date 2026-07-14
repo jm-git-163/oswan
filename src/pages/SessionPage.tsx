@@ -292,17 +292,17 @@ export function SessionPage() {
           />
           {(phase === 'stance' || phase === 'calibrating') && (
             <>
-              {/* 자연스러운 선 자세 — 팔은 몸 옆, T포즈/점프잭 아님 */}
+              {/* 셀피 준비: 머리·어깨·상체만 (발목/전신 없음) */}
               <svg
-                viewBox="0 0 200 400"
+                viewBox="0 0 200 240"
                 style={{
                   position: 'absolute',
                   left: '50%',
-                  top: '42%',
+                  top: '40%',
                   transform: 'translate(-50%, -50%)',
-                  width: '38%',
-                  maxWidth: 200,
-                  opacity: stance.ok ? 0.9 : 0.5,
+                  width: '58%',
+                  maxWidth: 280,
+                  opacity: stance.ok ? 0.95 : 0.55,
                   transition: 'opacity 0.25s',
                   pointerEvents: 'none',
                 }}
@@ -310,45 +310,56 @@ export function SessionPage() {
                 {/* head */}
                 <circle
                   cx="100"
-                  cy="48"
-                  r="28"
+                  cy="52"
+                  r="36"
                   fill="none"
                   stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                  strokeWidth="3"
+                  strokeWidth="4"
                 />
-                {/* torso */}
+                {/* neck */}
                 <line
                   x1="100"
-                  y1="76"
+                  y1="88"
                   x2="100"
-                  y2="200"
+                  y2="108"
                   stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                  strokeWidth="3"
+                  strokeWidth="4"
                   strokeLinecap="round"
                 />
-                {/* arms down by sides */}
+                {/* shoulders */}
                 <path
-                  d="M100 110 L55 175 M100 110 L145 175"
+                  d="M40 118 Q100 100 160 118"
                   fill="none"
                   stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                  strokeWidth="3"
+                  strokeWidth="4"
                   strokeLinecap="round"
                 />
-                {/* legs */}
+                {/* upper arms relaxed */}
                 <path
-                  d="M100 200 L70 320 M100 200 L130 320"
+                  d="M40 118 L28 175 M160 118 L172 175"
                   fill="none"
                   stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                  strokeWidth="3"
+                  strokeWidth="4"
                   strokeLinecap="round"
+                />
+                {/* chest / upper torso oval hint */}
+                <ellipse
+                  cx="100"
+                  cy="168"
+                  rx="42"
+                  ry="36"
+                  fill="none"
+                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
+                  strokeWidth="3.5"
+                  opacity="0.85"
                 />
               </svg>
               <div
                 style={{
                   position: 'absolute',
-                  left: 20,
-                  right: 20,
-                  top: 72,
+                  left: 16,
+                  right: 16,
+                  top: 68,
                   textAlign: 'center',
                   pointerEvents: 'none',
                 }}
@@ -356,7 +367,7 @@ export function SessionPage() {
                 <div
                   style={{
                     display: 'inline-block',
-                    background: 'rgba(0,0,0,0.65)',
+                    background: 'rgba(0,0,0,0.72)',
                     borderRadius: 14,
                     padding: '10px 14px',
                     fontSize: 13,
@@ -365,10 +376,14 @@ export function SessionPage() {
                     color: '#fff',
                   }}
                 >
-                  폰을 앞에 세워 두고 1.5~2m 떨어져 서 주세요
+                  스마트폰 바로 앞에서 OK
                   <br />
-                  <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                    정면 · 팔은 자연스럽게 옆 · 허리까지 보이게
+                  <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                    머리·어깨만 보이게 · 팔은 자연스럽게
+                  </span>
+                  <br />
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12 }}>
+                    발목·전신 맞출 필요 없음
                   </span>
                 </div>
               </div>
