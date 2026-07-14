@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrandMark } from '../components/BrandMark';
+import { PrideShareSheet } from '../components/PrideShareSheet';
 import { useAppStore } from '../store';
-import { composePrideVideo, prideFileFromBlob } from '../video/compose';
-import { prideCaption, sharePrideVideo } from '../video/sharePride';
+import { composePrideVideo } from '../video/compose';
+import { preparePrideShareFile, prideCaption } from '../video/sharePride';
 import { getPrideTemplate, PRIDE_TEMPLATES, type PrideTemplateId } from '../video/templates';
 
 type Phase = 'pick' | 'composing' | 'ready' | 'error';
@@ -19,8 +20,8 @@ export function PridePage() {
   const [progressLabel, setProgressLabel] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [outUrl, setOutUrl] = useState<string | null>(null);
-  const outBlobRef = useRef<Blob | null>(null);
-  const outFileRef = useRef<File | null>(null);
+  const [shareFile, setShareFile] = useState<File | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -38,6 +39,8 @@ export function PridePage() {
     [user.nickname, result],
   );
 
+  const caption = prideCaption(meta.nickname, meta.reps, meta.cleared);
+
   const runCompose = async () => {
     if (!rawBlob) {
       setError('이번 세션 영상이 없어요. 스쿼트를 다시 한 뒤 와 주세요.');
@@ -53,8 +56,8 @@ export function PridePage() {
         setProgress(p.percent);
         setProgressLabel(p.phase);
       });
-      outBlobRef.current = blob;
-      outFileRef.current = prideFileFromBlob(blob, templateId);
+      const file = preparePrideShareFile(blob, `oswan-${templateId}`);
+      setShareFile(file);
       if (outUrl) URL.revokeObjectURL(outUrl);
       setOutUrl(URL.createObjectURL(blob));
       setPhase('ready');
@@ -63,12 +66,6 @@ export function PridePage() {
       setError(e instanceof Error ? e.message : '합성에 실패했어요.');
       setPhase('error');
     }
-  };
-
-  const onShare = async () => {
-    const file = outFileRef.current;
-    if (!file) return;
-    await sharePrideVideo(file, prideCaption(meta.nickname, meta.reps, meta.cleared));
   };
 
   if (!result) {
@@ -211,13 +208,15 @@ export function PridePage() {
             />
           </div>
           <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
-            <button className="cta-primary" onClick={() => void onShare()}>
-              SNS로 공유하기
+            <button className="cta-primary" onClick={() => setSheetOpen(true)}>
+              SNS로 바로 공유 / 업로드
             </button>
             <button
               className="cta-secondary"
               onClick={() => {
                 setPhase('pick');
+                setSheetOpen(false);
+                setShareFile(null);
                 if (outUrl) URL.revokeObjectURL(outUrl);
                 setOutUrl(null);
               }}
@@ -230,6 +229,13 @@ export function PridePage() {
           </div>
         </>
       )}
+
+      <PrideShareSheet
+        open={sheetOpen}
+        file={shareFile}
+        caption={caption}
+        onClose={() => setSheetOpen(false)}
+      />
     </div>
   );
 }
