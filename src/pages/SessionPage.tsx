@@ -223,7 +223,7 @@ export function SessionPage() {
             zIndex: 30,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'flex-start',
+            justifyContent: 'center',
             padding: '20px 24px 28px',
             paddingTop: 'max(20px, env(safe-area-inset-top))',
             background: 'rgba(10,10,10,0.96)',
@@ -237,14 +237,12 @@ export function SessionPage() {
             카메라가 필요해요
           </h1>
           <p className="meta" style={{ fontSize: 15, lineHeight: 1.55, margin: '12px 0 16px' }}>
-            먼저 모범 자세를 보고, 아래 버튼으로 카메라를 허용해 주세요.
+            아래 버튼을 누르면 브라우저 허용 창이 뜹니다.
             <br />
             영상은 서버로 전송되지 않아요.
           </p>
 
-          <div style={{ marginBottom: 8, maxHeight: '46dvh', overflow: 'auto' }}>
-            <ModelSquatExample variant="gate" />
-          </div>
+          <ModelSquatExample variant="gate" />
 
           {permError && (
             <div
