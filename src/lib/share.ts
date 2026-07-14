@@ -152,23 +152,31 @@ function drawStick(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: num
 }
 
 /**
- * Opens OS share sheet (Kakao/메신저 포함).
- * Text share first so we keep the user-gesture (iOS). Image share is opt-in.
+ * Opens OS share sheet. Pass preparedFile to avoid awaiting canvas (keeps user-gesture).
  */
+export function canNativeShare(): boolean {
+  return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+}
+
 export async function shareChallengeInvite(
   challenge: Challenge,
-  opts?: { withImage?: boolean },
+  opts?: { preparedFile?: File | null },
 ): Promise<ShareOutcome> {
   const url = challengeShareUrl(challenge);
   const title = '오스완 도전장 · 오늘 스쿼트 완료';
   const text = challengeShareText(challenge, url);
 
-  if (opts?.withImage && typeof navigator.share === 'function') {
+  if (!canNativeShare()) {
+    return 'fallback';
+  }
+
+  const file = opts?.preparedFile ?? null;
+
+  if (file) {
     try {
-      const blob = await renderChallengeCardBlob(challenge);
-      const file = new File([blob], `oswan-${challenge.targetReps}.png`, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title, text });
+      const data = { files: [file], title, text };
+      if (!navigator.canShare || navigator.canShare(data)) {
+        await navigator.share(data);
         return 'shared';
       }
     } catch (err) {
@@ -176,33 +184,36 @@ export async function shareChallengeInvite(
     }
   }
 
-  if (typeof navigator.share === 'function') {
-    try {
-      // text에 URL 포함 — iOS/카톡이 url 필드를 버리는 경우 대비
-      await navigator.share({ title, text });
-      return 'shared';
-    } catch (err) {
-      if (isUserCancel(err)) return 'cancelled';
-    }
+  try {
+    await navigator.share({ title, text, url });
+    return 'shared';
+  } catch (err) {
+    if (isUserCancel(err)) return 'cancelled';
   }
 
-  // Desktop / 미지원 → 호출측에서 폴백 시트 표시
   try {
-    await navigator.clipboard.writeText(url);
-    return 'copied';
-  } catch {
+    await navigator.share({ title, text });
+    return 'shared';
+  } catch (err) {
+    if (isUserCancel(err)) return 'cancelled';
     return 'fallback';
   }
 }
 
 export async function sharePlainText(title: string, text: string): Promise<ShareOutcome> {
-  if (typeof navigator.share === 'function') {
+  if (!canNativeShare()) {
     try {
-      await navigator.share({ title, text });
-      return 'shared';
-    } catch (err) {
-      if (isUserCancel(err)) return 'cancelled';
+      await navigator.clipboard.writeText(text);
+      return 'copied';
+    } catch {
+      return 'fallback';
     }
+  }
+  try {
+    await navigator.share({ title, text });
+    return 'shared';
+  } catch (err) {
+    if (isUserCancel(err)) return 'cancelled';
   }
   try {
     await navigator.clipboard.writeText(text);
@@ -212,9 +223,8 @@ export async function sharePlainText(title: string, text: string): Promise<Share
   }
 }
 
-/** Kakao / SMS / Telegram deep helpers for desktop fallback sheet */
 export function openSmsShare(text: string) {
-  window.open(`sms:?&body=${encodeURIComponent(text)}`, '_self');
+  window.location.href = `sms:?&body=${encodeURIComponent(text)}`;
 }
 
 export function openTelegramShare(url: string, text: string) {
@@ -224,3 +234,27 @@ export function openTelegramShare(url: string, text: string) {
     'noopener,noreferrer',
   );
 }
+
+/** Copy invite then try to foreground KakaoTalk (paste there). */
+export async function openKakaoWithCopiedText(text: string): Promise<'opened' | 'copied'> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    /* continue */
+  }
+  const ua = navigator.userAgent || '';
+  try {
+    if (/Android/i.test(ua)) {
+      window.location.href = 'kakaotalk://launch';
+      return 'opened';
+    }
+    if (/iPhone|iPad|iPod/i.test(ua)) {
+      window.location.href = 'kakaotalk://open';
+      return 'opened';
+    }
+  } catch {
+    /* */
+  }
+  return 'copied';
+}
+

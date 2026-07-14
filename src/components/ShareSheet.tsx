@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BrandMark } from './BrandMark';
 import type { Challenge } from '../lib/types';
 import { challengeShareUrl } from '../lib/storage';
 import {
+  canNativeShare,
   challengeShareText,
+  openKakaoWithCopiedText,
   openSmsShare,
   openTelegramShare,
   renderChallengeCardBlob,
@@ -21,23 +23,33 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [fileReady, setFileReady] = useState(false);
+  const fileRef = useRef<File | null>(null);
+  const native = canNativeShare();
 
   useEffect(() => {
     if (!open) return;
     let alive = true;
-    let url: string | null = null;
+    let objectUrl: string | null = null;
+    fileRef.current = null;
+    setFileReady(false);
+    setStatus(null);
     void (async () => {
       try {
         const blob = await renderChallengeCardBlob(challenge);
-        url = URL.createObjectURL(blob);
-        if (alive) setPreview(url);
+        const file = new File([blob], `oswan-${challenge.targetReps}.png`, { type: 'image/png' });
+        objectUrl = URL.createObjectURL(blob);
+        if (!alive) return;
+        fileRef.current = file;
+        setFileReady(true);
+        setPreview(objectUrl);
       } catch {
         if (alive) setPreview('/og-challenge.png');
       }
     })();
     return () => {
       alive = false;
-      if (url) URL.revokeObjectURL(url);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [open, challenge]);
 
@@ -46,25 +58,47 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
   const url = challengeShareUrl(challenge);
   const text = challengeShareText(challenge, url);
 
-  const sendToMessenger = async () => {
+  const sendToMessenger = () => {
+    // 클릭 핸들러에서 await 없이 바로 share 시작 → 제스처 유지
     setBusy(true);
     setStatus(null);
-    const r = await shareChallengeInvite(challenge, { withImage: true });
-    setBusy(false);
-    if (r === 'shared') {
-      onClose();
-      return;
-    }
-    if (r === 'cancelled') {
-      setStatus('공유가 취소됐어요. 다시 눌러 주세요.');
-      return;
-    }
-    setStatus('이 기기에서 메신저 공유창이 안 열려요. 아래 문자/텔레그램을 쓰거나 링크를 복사하세요.');
+    void (async () => {
+      const r = await shareChallengeInvite(challenge, {
+        preparedFile: fileRef.current,
+      });
+      setBusy(false);
+      if (r === 'shared') {
+        onClose();
+        return;
+      }
+      if (r === 'cancelled') {
+        setStatus('공유가 취소됐어요. 다시 눌러 주세요.');
+        return;
+      }
+      // native share 실패/미지원 → 카톡 앱 실행 + 클립보드
+      const k = await openKakaoWithCopiedText(text);
+      setStatus(
+        k === 'opened'
+          ? '도전장 문구를 복사했고 카카오톡을 열었어요. 채팅창에 붙여넣기 하세요.'
+          : '도전장 문구를 복사했어요. 카카오톡을 열고 붙여넣기 하세요.',
+      );
+    })();
+  };
+
+  const sendKakao = () => {
+    void (async () => {
+      const k = await openKakaoWithCopiedText(text);
+      setStatus(
+        k === 'opened'
+          ? '복사 완료 · 카카오톡에서 붙여넣기'
+          : '복사 완료 · 카카오톡을 열고 붙여넣기',
+      );
+    })();
   };
 
   const copy = async () => {
-    await navigator.clipboard.writeText(`${text}`);
-    setStatus('도전장 문구+링크를 복사했어요. 카톡에 붙여넣기 하세요.');
+    await navigator.clipboard.writeText(text);
+    setStatus('도전장 문구+링크를 복사했어요.');
   };
 
   return (
@@ -126,7 +160,11 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
           {challenge.fromNickname} · {challenge.targetReps}개 도전
         </p>
         <p className="meta" style={{ marginBottom: 14, lineHeight: 1.45 }}>
-          아래 버튼을 누르면 카톡·메시지 등 앱 선택창이 뜹니다. 썸네일 이미지와 링크가 함께 갑니다.
+          {native
+            ? fileReady
+              ? '썸네일 준비됨 · 아래 버튼으로 카톡·메신저를 고르세요.'
+              : '썸네일 만드는 중… 곧 보낼 수 있어요.'
+            : '이 브라우저는 공유창이 없어요. 카카오톡 버튼으로 복사 후 붙여넣기 하세요.'}
         </p>
 
         {status && (
@@ -135,8 +173,8 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
             style={{
               marginBottom: 12,
               fontSize: 13,
-              color: 'var(--warn)',
-              border: '1px solid var(--warn)',
+              color: 'var(--accent)',
+              border: '1px solid rgba(200,245,74,0.35)',
               padding: 12,
             }}
           >
@@ -145,8 +183,17 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
         )}
 
         <div style={{ display: 'grid', gap: 8 }}>
-          <button className="cta-primary" disabled={busy} onClick={() => void sendToMessenger()}>
-            {busy ? '준비 중…' : '카톡·메신저로 보내기'}
+          {native ? (
+            <button className="cta-primary" disabled={busy} onClick={sendToMessenger}>
+              {busy ? '여는 중…' : '카톡·메신저로 보내기'}
+            </button>
+          ) : (
+            <button className="cta-primary" onClick={sendKakao}>
+              카카오톡으로 보내기 (복사→붙여넣기)
+            </button>
+          )}
+          <button className="cta-secondary" onClick={sendKakao}>
+            카카오톡 앱 열기
           </button>
           <button
             className="cta-secondary"
@@ -165,7 +212,7 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
             텔레그램으로 보내기
           </button>
           <button className="cta-secondary" onClick={() => void copy()}>
-            문구·링크 복사 (최후 수단)
+            문구·링크만 복사
           </button>
           <button className="cta-secondary" onClick={onClose}>
             닫기
