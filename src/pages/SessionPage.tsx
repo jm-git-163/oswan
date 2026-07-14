@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ModelSquatExample } from '../components/ModelSquatExample';
 import { startCamera, stopCamera, releaseVideo, usePose } from '../hooks/usePose';
-import { stanceOk, useSquatEngine } from '../hooks/useSquatEngine';
+import { playRepBeep, stanceOk, useSquatEngine } from '../hooks/useSquatEngine';
 import { addSession, completeChallenge } from '../lib/storage';
 import { RULE_VERSION } from '../lib/types';
 import { useAppStore } from '../store';
+import { SessionRecorder } from '../video/sessionRecorder';
 
 type Phase = 'need_perm' | 'requesting' | 'stance' | 'calibrating' | 'go' | 'counting';
 
@@ -32,11 +34,14 @@ export function SessionPage() {
   const navigate = useNavigate();
   const user = useAppStore((s) => s.user)!;
   const setLastResult = useAppStore((s) => s.setLastResult);
+  const setLastRawVideo = useAppStore((s) => s.setLastRawVideo);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef(new SessionRecorder());
   const startedAt = useRef(Date.now());
   const finished = useRef(false);
+  const recording = useRef(false);
 
   const [phase, setPhase] = useState<Phase>('need_perm');
   const [permError, setPermError] = useState<string | null>(null);
@@ -51,10 +56,57 @@ export function SessionPage() {
 
   useEffect(() => {
     return () => {
+      void recorderRef.current.stop();
       stopCamera(streamRef.current);
       streamRef.current = null;
     };
   }, []);
+
+  // Start raw clip recording when countdown hits counting (for pride compose)
+  useEffect(() => {
+    if (phase !== 'counting' || recording.current) return;
+    const video = videoRef.current;
+    if (!video) return;
+    recording.current = recorderRef.current.start(video);
+  }, [phase]);
+
+  const finishSession = useCallback(
+    async (repsFinal: number) => {
+      if (finished.current) return;
+      finished.current = true;
+      const durationMs = Date.now() - startedAt.current;
+      const cleared = repsFinal >= target;
+
+      const raw = await recorderRef.current.stop();
+      recording.current = false;
+      setLastRawVideo(raw);
+
+      const session = addSession({
+        softUserId: user.id,
+        startedAt: new Date(startedAt.current).toISOString(),
+        endedAt: new Date().toISOString(),
+        reps: repsFinal,
+        targetReps: target,
+        cleared,
+        durationMs,
+        challengeId,
+        ruleVersion: RULE_VERSION,
+      });
+      if (challengeId) completeChallenge(challengeId, user.id, cleared, session.id);
+      setLastResult({
+        reps: repsFinal,
+        targetReps: target,
+        cleared,
+        durationMs,
+        challengeId,
+        sessionId: session.id,
+      });
+      stopCamera(streamRef.current);
+      streamRef.current = null;
+      navigate('/result', { replace: true });
+    },
+    [target, user.id, challengeId, navigate, setLastResult, setLastRawVideo],
+  );
 
   const requestCamera = useCallback(async () => {
     setPermError(null);
@@ -69,7 +121,6 @@ export function SessionPage() {
       stopCamera(streamRef.current);
       streamRef.current = null;
       releaseVideo(video);
-      // Must run inside this click/tap handler for mobile browsers
       const stream = await startCamera(video, 'user');
       streamRef.current = stream;
       setPhase('stance');
@@ -112,69 +163,22 @@ export function SessionPage() {
   useEffect(() => {
     if (tick > 0) {
       setPulse(true);
+      playRepBeep(update?.count ?? tick);
       const t = window.setTimeout(() => setPulse(false), 180);
       return () => clearTimeout(t);
     }
-  }, [tick]);
+  }, [tick, update?.count]);
 
   const reps = update?.count ?? 0;
 
   useEffect(() => {
     if (phase !== 'counting' || finished.current) return;
     if (reps < target) return;
-    finished.current = true;
-    const durationMs = Date.now() - startedAt.current;
-    const session = addSession({
-      softUserId: user.id,
-      startedAt: new Date(startedAt.current).toISOString(),
-      endedAt: new Date().toISOString(),
-      reps,
-      targetReps: target,
-      cleared: true,
-      durationMs,
-      challengeId,
-      ruleVersion: RULE_VERSION,
-    });
-    if (challengeId) completeChallenge(challengeId, user.id, true, session.id);
-    setLastResult({
-      reps,
-      targetReps: target,
-      cleared: true,
-      durationMs,
-      challengeId,
-      sessionId: session.id,
-    });
-    stopCamera(streamRef.current);
-    navigate('/result', { replace: true });
-  }, [reps, target, phase, user.id, challengeId, navigate, setLastResult]);
+    void finishSession(reps);
+  }, [reps, target, phase, finishSession]);
 
   const stopEarly = () => {
-    if (finished.current) return;
-    finished.current = true;
-    const durationMs = Date.now() - startedAt.current;
-    const cleared = reps >= target;
-    const session = addSession({
-      softUserId: user.id,
-      startedAt: new Date(startedAt.current).toISOString(),
-      endedAt: new Date().toISOString(),
-      reps,
-      targetReps: target,
-      cleared,
-      durationMs,
-      challengeId,
-      ruleVersion: RULE_VERSION,
-    });
-    if (challengeId) completeChallenge(challengeId, user.id, cleared, session.id);
-    setLastResult({
-      reps,
-      targetReps: target,
-      cleared,
-      durationMs,
-      challengeId,
-      sessionId: session.id,
-    });
-    stopCamera(streamRef.current);
-    navigate('/result', { replace: true });
+    void finishSession(reps);
   };
 
   const calib = update?.calibration;
@@ -219,9 +223,11 @@ export function SessionPage() {
             zIndex: 30,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
-            padding: 24,
-            background: 'rgba(10,10,10,0.92)',
+            justifyContent: 'flex-start',
+            padding: '20px 24px 28px',
+            paddingTop: 'max(20px, env(safe-area-inset-top))',
+            background: 'rgba(10,10,10,0.96)',
+            overflowY: 'auto',
           }}
         >
           <p className="meta" style={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -230,13 +236,16 @@ export function SessionPage() {
           <h1 className="page-title" style={{ marginTop: 8 }}>
             카메라가 필요해요
           </h1>
-          <p className="meta" style={{ fontSize: 15, lineHeight: 1.55, margin: '12px 0 28px' }}>
-            아래 버튼을 누르면 브라우저 허용 창이 뜹니다.
-            <br />
-            <strong style={{ color: '#fff' }}>허용</strong>을 선택해 주세요.
+          <p className="meta" style={{ fontSize: 15, lineHeight: 1.55, margin: '12px 0 16px' }}>
+            먼저 모범 자세를 보고, 아래 버튼으로 카메라를 허용해 주세요.
             <br />
             영상은 서버로 전송되지 않아요.
           </p>
+
+          <div style={{ marginBottom: 8, maxHeight: '46dvh', overflow: 'auto' }}>
+            <ModelSquatExample variant="gate" />
+          </div>
+
           {permError && (
             <div
               className="card"
@@ -282,27 +291,88 @@ export function SessionPage() {
             }}
           />
           {(phase === 'stance' || phase === 'calibrating') && (
-            <svg
-              viewBox="0 0 200 360"
-              style={{
-                position: 'absolute',
-                left: '50%',
-                top: '46%',
-                transform: 'translate(-50%, -50%)',
-                width: '42%',
-                maxWidth: 220,
-                opacity: stance.ok ? 0.85 : 0.45,
-                transition: 'opacity 0.25s',
-              }}
-            >
-              <path
-                d="M100 28c12 0 22 10 22 22s-10 22-22 22-22-10-22-22 10-22 22-22zm0 56c28 0 48 8 58 22 6 8 8 18 8 34v40c0 10-6 16-14 16h-16v90c0 12-8 22-18 22s-18-10-18-22v-90H78v90c0 12-8 22-18 22s-18-10-18-22v-90H26c-8 0-14-6-14-16v-40c0-16 2-26 8-34 10-14 30-22 58-22z"
-                fill="none"
-                stroke={stance.ok ? 'var(--accent)' : '#fff'}
-                strokeWidth="3"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <>
+              {/* 자연스러운 선 자세 — 팔은 몸 옆, T포즈/점프잭 아님 */}
+              <svg
+                viewBox="0 0 200 400"
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '42%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '38%',
+                  maxWidth: 200,
+                  opacity: stance.ok ? 0.9 : 0.5,
+                  transition: 'opacity 0.25s',
+                  pointerEvents: 'none',
+                }}
+              >
+                {/* head */}
+                <circle
+                  cx="100"
+                  cy="48"
+                  r="28"
+                  fill="none"
+                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
+                  strokeWidth="3"
+                />
+                {/* torso */}
+                <line
+                  x1="100"
+                  y1="76"
+                  x2="100"
+                  y2="200"
+                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                {/* arms down by sides */}
+                <path
+                  d="M100 110 L55 175 M100 110 L145 175"
+                  fill="none"
+                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                {/* legs */}
+                <path
+                  d="M100 200 L70 320 M100 200 L130 320"
+                  fill="none"
+                  stroke={stance.ok ? 'var(--accent)' : '#fff'}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 20,
+                  right: 20,
+                  top: 72,
+                  textAlign: 'center',
+                  pointerEvents: 'none',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'inline-block',
+                    background: 'rgba(0,0,0,0.65)',
+                    borderRadius: 14,
+                    padding: '10px 14px',
+                    fontSize: 13,
+                    lineHeight: 1.45,
+                    fontWeight: 600,
+                    color: '#fff',
+                  }}
+                >
+                  폰을 앞에 세워 두고 1.5~2m 떨어져 서 주세요
+                  <br />
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    정면 · 팔은 자연스럽게 옆 · 허리까지 보이게
+                  </span>
+                </div>
+              </div>
+            </>
           )}
 
           <div

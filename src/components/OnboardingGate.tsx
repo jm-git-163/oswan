@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BrandHeader } from './BrandMark';
 import { createSoftUser } from '../lib/storage';
 import { useAppStore } from '../store';
 
@@ -11,12 +12,9 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="page" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      <p className="meta" style={{ letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>
-        Oswan
-      </p>
-      <h1 className="page-title">오스완</h1>
-      <p className="meta" style={{ fontSize: 15, marginBottom: 32, lineHeight: 1.5 }}>
-        오늘 스쿼트 완료.
+      <BrandHeader size="lg" />
+      <p className="meta" style={{ fontSize: 15, margin: '28px 0 32px', lineHeight: 1.5 }}>
+        목표 개수 채우면 오스완.
         <br />
         가입 없이, 닉네임만으로 시작해요.
       </p>

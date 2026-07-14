@@ -1,13 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { BrandHeader } from '../components/BrandMark';
+import { ModelSquatExample } from '../components/ModelSquatExample';
+import { ShareSheet } from '../components/ShareSheet';
+import { shareChallengeInvite } from '../lib/share';
 import { clearStreak, createChallenge, listChallenges, todayReps } from '../lib/storage';
 import { useAppStore } from '../store';
+import type { Challenge } from '../lib/types';
 
 export function HomePage() {
   const user = useAppStore((s) => s.user)!;
   const navigate = useNavigate();
   const location = useLocation();
   const [target, setTarget] = useState(30);
+  const [sheetChallenge, setSheetChallenge] = useState<Challenge | null>(null);
   const reps = useMemo(() => todayReps(user.id), [user.id, location.key]);
   const streak = useMemo(() => clearStreak(user.id), [user.id, location.key]);
   const active = useMemo(
@@ -20,16 +26,26 @@ export function HomePage() {
     [user.id, location.key],
   );
 
+  const sendChallenge = async () => {
+    const c = createChallenge({
+      fromSoftUserId: user.id,
+      fromNickname: user.nickname,
+      targetReps: target,
+    });
+    // 같은 탭 제스처에서 OS 공유 시트 오픈 (카톡·메신저)
+    const outcome = await shareChallengeInvite(c);
+    if (outcome === 'copied' || outcome === 'fallback') {
+      setSheetChallenge(c);
+      return;
+    }
+    navigate(`/c/${c.id}`);
+  };
+
   return (
     <div className="page">
-      <p className="meta" style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-        Oswan
-      </p>
-      <h1 className="page-title" style={{ marginTop: 4 }}>
-        오스완
-      </h1>
+      <BrandHeader size="lg" />
 
-      <div style={{ marginTop: 48, marginBottom: 8 }}>
+      <div style={{ marginTop: 40, marginBottom: 8 }}>
         <div className="hero-num" style={{ fontSize: 72 }}>
           {reps}
         </div>
@@ -70,6 +86,10 @@ export function HomePage() {
         </div>
       </div>
 
+      <div style={{ marginBottom: 16 }}>
+        <ModelSquatExample variant="compact" />
+      </div>
+
       <button className="cta-primary" onClick={() => navigate(`/session?target=${target}`)}>
         스쿼트 시작
       </button>
@@ -88,28 +108,21 @@ export function HomePage() {
         </Link>
       )}
 
-      <button
-        className="cta-secondary"
-        style={{ marginTop: 12 }}
-        onClick={() => navigate(`/practice?target=${target}`)}
-      >
-        연습 모드 (카메라 없음)
-      </button>
-
-      <button
-        className="cta-secondary"
-        style={{ marginTop: 12 }}
-        onClick={() => {
-          const c = createChallenge({
-            fromSoftUserId: user.id,
-            fromNickname: user.nickname,
-            targetReps: target,
-          });
-          navigate(`/c/${c.id}?fresh=1`);
-        }}
-      >
+      <button className="cta-secondary" style={{ marginTop: 12 }} onClick={() => void sendChallenge()}>
         친구에게 도전장
       </button>
+
+      {sheetChallenge && (
+        <ShareSheet
+          open
+          challenge={sheetChallenge}
+          onClose={() => {
+            const id = sheetChallenge.id;
+            setSheetChallenge(null);
+            navigate(`/c/${id}`);
+          }}
+        />
+      )}
     </div>
   );
 }

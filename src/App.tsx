@@ -7,7 +7,7 @@ import { ChallengesPage } from './pages/ChallengesPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { HomePage } from './pages/HomePage';
 import { MePage } from './pages/MePage';
-import { PracticePage } from './pages/PracticePage';
+import { PridePage } from './pages/PridePage';
 import { RankingPage } from './pages/RankingPage';
 import { ResultPage } from './pages/ResultPage';
 import { SessionPage } from './pages/SessionPage';
@@ -31,8 +31,8 @@ export default function App() {
             <Route path="challenges" element={<ChallengesPage />} />
             <Route path="me" element={<MePage />} />
             <Route path="session" element={<SessionPage />} />
-            <Route path="practice" element={<PracticePage />} />
             <Route path="result" element={<ResultPage />} />
+            <Route path="pride" element={<PridePage />} />
             <Route path="c/:id" element={<ChallengePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

@@ -11,8 +11,8 @@ export function AppShell() {
   const loc = useLocation();
   const immersive =
     loc.pathname.startsWith('/session') ||
-    loc.pathname.startsWith('/practice') ||
-    loc.pathname.startsWith('/result');
+    loc.pathname.startsWith('/result') ||
+    loc.pathname.startsWith('/pride');
 
   return (
     <div className={`app-shell${immersive ? ' immersive' : ''}`}>

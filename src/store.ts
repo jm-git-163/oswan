@@ -15,6 +15,9 @@ type AppState = {
     sessionId?: string;
   } | null;
   setLastResult: (r: AppState['lastResult']) => void;
+  /** Raw squat camera clip for optional pride compose (session memory only). */
+  lastRawVideo: Blob | null;
+  setLastRawVideo: (b: Blob | null) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -23,4 +26,6 @@ export const useAppStore = create<AppState>((set) => ({
   setUser: (user) => set({ user }),
   lastResult: null,
   setLastResult: (lastResult) => set({ lastResult }),
+  lastRawVideo: null,
+  setLastRawVideo: (lastRawVideo) => set({ lastRawVideo }),
 }));
