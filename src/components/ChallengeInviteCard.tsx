@@ -1,4 +1,3 @@
-import { BrandMark } from './BrandMark';
 import type { Challenge } from '../lib/types';
 
 type Props = {
@@ -22,36 +21,12 @@ export function ChallengeInviteCard({ challenge, remaining }: Props) {
         border: '1px solid rgba(200,245,74,0.28)',
       }}
     >
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#0a0a0a' }}>
+      <div style={{ width: '100%', aspectRatio: '16/9', background: '#0a0a0a' }}>
         <img
           src="/og-challenge.png"
           alt="오스완 도전장"
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.75))',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            left: 16,
-            bottom: 14,
-            right: 16,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <BrandMark size={36} />
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>오스완 도전장</div>
-            <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12 }}>오늘 스쿼트 완료</div>
-          </div>
-        </div>
       </div>
 
       <div
