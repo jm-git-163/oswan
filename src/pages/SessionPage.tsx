@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { startCamera, stopCamera, usePose } from '../hooks/usePose';
 import { stanceOk, useSquatEngine } from '../hooks/useSquatEngine';
@@ -6,7 +6,24 @@ import { addSession, completeChallenge } from '../lib/storage';
 import { RULE_VERSION } from '../lib/types';
 import { useAppStore } from '../store';
 
-type Phase = 'boot' | 'stance' | 'calibrating' | 'go' | 'counting';
+type Phase = 'need_perm' | 'requesting' | 'stance' | 'calibrating' | 'go' | 'counting';
+
+function cameraErrorMessage(err: unknown): string {
+  const name = err && typeof err === 'object' && 'name' in err ? String((err as DOMException).name) : '';
+  if (!window.isSecureContext && location.hostname !== 'localhost') {
+    return 'HTTPS에서만 카메라를 쓸 수 있어요. oswan.vercel.app 로 열어 주세요.';
+  }
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+    return '카메라가 차단됐어요. 주소창 자물쇠/ⓘ → 카메라 → 허용 후 다시 눌러 주세요.';
+  }
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+    return '카메라를 찾지 못했어요. 다른 기기나 브라우저로 시도해 주세요.';
+  }
+  if (name === 'NotReadableError' || name === 'TrackStartError') {
+    return '카메라가 다른 앱에서 사용 중일 수 있어요. 닫고 다시 시도해 주세요.';
+  }
+  return '카메라를 켜지 못했어요. 허용 버튼을 다시 눌러 주세요.';
+}
 
 export function SessionPage() {
   const [params] = useSearchParams();
@@ -21,35 +38,45 @@ export function SessionPage() {
   const startedAt = useRef(Date.now());
   const finished = useRef(false);
 
-  const [phase, setPhase] = useState<Phase>('boot');
+  const [phase, setPhase] = useState<Phase>('need_perm');
   const [permError, setPermError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [pulse, setPulse] = useState(false);
 
-  const { ready, error: poseError, landmarks } = usePose(videoRef);
+  const cameraOn = phase !== 'need_perm' && phase !== 'requesting';
+  const { ready, error: poseError, landmarks } = usePose(videoRef, cameraOn);
   const counting = phase === 'counting' || phase === 'calibrating' || phase === 'go';
   const { update, tick } = useSquatEngine(landmarks, counting);
   const stance = useMemo(() => stanceOk(landmarks), [landmarks]);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        if (!videoRef.current) return;
-        streamRef.current = await startCamera(videoRef.current, 'user');
-        if (alive) setPhase('stance');
-      } catch {
-        setPermError('카메라 권한이 필요해요. 브라우저에서 허용해 주세요.');
-      }
-    })();
     return () => {
-      alive = false;
       stopCamera(streamRef.current);
       streamRef.current = null;
     };
   }, []);
 
-  // stance → auto start calibration when ok for a moment
+  const requestCamera = useCallback(async () => {
+    setPermError(null);
+    setPhase('requesting');
+    try {
+      const video = videoRef.current;
+      if (!video) {
+        setPermError('화면을 준비하지 못했어요. 새로고침 후 다시 시도해 주세요.');
+        setPhase('need_perm');
+        return;
+      }
+      // Must run inside this click/tap handler for mobile browsers
+      const stream = await startCamera(video, 'user');
+      streamRef.current = stream;
+      setPhase('stance');
+    } catch (err) {
+      console.warn('[oswan] camera', err);
+      setPermError(cameraErrorMessage(err));
+      setPhase('need_perm');
+    }
+  }, []);
+
   useEffect(() => {
     if (phase !== 'stance' || !stance.ok || !ready) return;
     const t = window.setTimeout(() => setPhase('calibrating'), 600);
@@ -149,18 +176,19 @@ export function SessionPage() {
 
   const calib = update?.calibration;
   const statusText =
-    permError ||
-    poseError ||
-    (phase === 'boot' && '카메라 준비 중…') ||
-    (phase === 'stance' && stance.hint) ||
+    (phase === 'stance' && (!ready ? '포즈 엔진 준비 중…' : stance.hint)) ||
     (phase === 'calibrating' &&
       (calib?.state === 'unstable'
         ? '흔들림 — 자세 고정'
         : calib?.state === 'pending'
-          ? `캘리브 ${(Math.round((calib.progress || 0) * 100))}%`
+          ? `캘리브 ${Math.round((calib.progress || 0) * 100)}%`
           : '준비…')) ||
     (countdown !== null && `${countdown}`) ||
-    (phase === 'counting' && (update?.phase === 'down' ? '↓' : '↑'));
+    (phase === 'counting' && (update?.phase === 'down' ? '↓' : '↑')) ||
+    poseError ||
+    '';
+
+  const showPermGate = phase === 'need_perm' || phase === 'requesting';
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100dvh', overflow: 'hidden', background: '#000' }}>
@@ -176,118 +204,204 @@ export function SessionPage() {
           height: '100%',
           objectFit: 'cover',
           transform: 'scaleX(-1)',
+          opacity: cameraOn ? 1 : 0.25,
         }}
       />
 
-      {/* silhouette */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          background:
-            phase === 'stance' || phase === 'calibrating'
-              ? 'radial-gradient(ellipse at center, transparent 28%, rgba(0,0,0,0.55) 70%)'
-              : 'linear-gradient(180deg, rgba(0,0,0,0.35), transparent 30%, transparent 70%, rgba(0,0,0,0.55))',
-        }}
-      />
-      {(phase === 'stance' || phase === 'calibrating') && (
-        <svg
-          viewBox="0 0 200 360"
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '46%',
-            transform: 'translate(-50%, -50%)',
-            width: '42%',
-            maxWidth: 220,
-            opacity: stance.ok ? 0.85 : 0.45,
-            transition: 'opacity 0.25s',
-          }}
-        >
-          <path
-            d="M100 28c12 0 22 10 22 22s-10 22-22 22-22-10-22-22 10-22 22-22zm0 56c28 0 48 8 58 22 6 8 8 18 8 34v40c0 10-6 16-14 16h-16v90c0 12-8 22-18 22s-18-10-18-22v-90H78v90c0 12-8 22-18 22s-18-10-18-22v-90H26c-8 0-14-6-14-16v-40c0-16 2-26 8-34 10-14 30-22 58-22z"
-            fill="none"
-            stroke={stance.ok ? 'var(--accent)' : '#fff'}
-            strokeWidth="3"
-            strokeLinejoin="round"
-          />
-        </svg>
-      )}
-
-      <div style={{ position: 'absolute', top: 20, left: 16, right: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button
-          onClick={() => {
-            stopCamera(streamRef.current);
-            navigate('/');
-          }}
-          style={{ padding: '8px 14px', borderRadius: 999, background: 'rgba(0,0,0,0.55)', fontWeight: 600 }}
-        >
-          닫기
-        </button>
-        <div className="meta" style={{ background: 'rgba(0,0,0,0.55)', padding: '8px 12px', borderRadius: 999 }}>
-          목표 {target}
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: '18%',
-          textAlign: 'center',
-          pointerEvents: 'none',
-        }}
-      >
-        {(phase === 'counting' || phase === 'go') && (
-          <div
-            className="hero-num"
-            style={{
-              fontSize: pulse ? 96 : 88,
-              transition: 'font-size 0.15s',
-              textShadow: '0 4px 24px rgba(0,0,0,0.6)',
-            }}
-          >
-            {reps}
-            <span style={{ fontSize: 36, color: 'var(--text-secondary)', fontWeight: 600 }}> / {target}</span>
-          </div>
-        )}
-        {countdown !== null && (
-          <div className="hero-num" style={{ fontSize: 120, color: 'var(--accent)' }}>
-            {countdown}
-          </div>
-        )}
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          left: 16,
-          right: 16,
-          bottom: 28,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}
-      >
+      {showPermGate && (
         <div
           style={{
-            textAlign: 'center',
-            fontWeight: 600,
-            fontSize: 15,
-            color: stance.ok || phase === 'counting' ? 'var(--accent)' : '#fff',
-            textShadow: '0 2px 12px rgba(0,0,0,0.8)',
+            position: 'absolute',
+            inset: 0,
+            zIndex: 30,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            padding: 24,
+            background: 'rgba(10,10,10,0.92)',
           }}
         >
-          {statusText}
-        </div>
-        {phase === 'counting' && (
-          <button className="cta-secondary" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={stopEarly}>
-            끝내기
+          <p className="meta" style={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Camera
+          </p>
+          <h1 className="page-title" style={{ marginTop: 8 }}>
+            카메라가 필요해요
+          </h1>
+          <p className="meta" style={{ fontSize: 15, lineHeight: 1.55, margin: '12px 0 28px' }}>
+            아래 버튼을 누르면 브라우저 허용 창이 뜹니다.
+            <br />
+            <strong style={{ color: '#fff' }}>허용</strong>을 선택해 주세요.
+            <br />
+            영상은 서버로 전송되지 않아요.
+          </p>
+          {permError && (
+            <div
+              className="card"
+              style={{
+                marginBottom: 16,
+                color: 'var(--warn)',
+                fontSize: 14,
+                lineHeight: 1.5,
+                border: '1px solid var(--warn)',
+              }}
+            >
+              {permError}
+            </div>
+          )}
+          <button
+            className="cta-primary"
+            disabled={phase === 'requesting'}
+            onClick={() => void requestCamera()}
+          >
+            {phase === 'requesting' ? '요청 중…' : '카메라 허용하기'}
           </button>
-        )}
-      </div>
+          <button
+            className="cta-secondary"
+            style={{ marginTop: 10 }}
+            onClick={() => navigate('/')}
+          >
+            홈으로
+          </button>
+        </div>
+      )}
+
+      {!showPermGate && (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              background:
+                phase === 'stance' || phase === 'calibrating'
+                  ? 'radial-gradient(ellipse at center, transparent 28%, rgba(0,0,0,0.55) 70%)'
+                  : 'linear-gradient(180deg, rgba(0,0,0,0.35), transparent 30%, transparent 70%, rgba(0,0,0,0.55))',
+            }}
+          />
+          {(phase === 'stance' || phase === 'calibrating') && (
+            <svg
+              viewBox="0 0 200 360"
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: '46%',
+                transform: 'translate(-50%, -50%)',
+                width: '42%',
+                maxWidth: 220,
+                opacity: stance.ok ? 0.85 : 0.45,
+                transition: 'opacity 0.25s',
+              }}
+            >
+              <path
+                d="M100 28c12 0 22 10 22 22s-10 22-22 22-22-10-22-22 10-22 22-22zm0 56c28 0 48 8 58 22 6 8 8 18 8 34v40c0 10-6 16-14 16h-16v90c0 12-8 22-18 22s-18-10-18-22v-90H78v90c0 12-8 22-18 22s-18-10-18-22v-90H26c-8 0-14-6-14-16v-40c0-16 2-26 8-34 10-14 30-22 58-22z"
+                fill="none"
+                stroke={stance.ok ? 'var(--accent)' : '#fff'}
+                strokeWidth="3"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+
+          <div
+            style={{
+              position: 'absolute',
+              top: 20,
+              left: 16,
+              right: 16,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <button
+              onClick={() => {
+                stopCamera(streamRef.current);
+                navigate('/');
+              }}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 999,
+                background: 'rgba(0,0,0,0.55)',
+                fontWeight: 600,
+              }}
+            >
+              닫기
+            </button>
+            <div
+              className="meta"
+              style={{ background: 'rgba(0,0,0,0.55)', padding: '8px 12px', borderRadius: 999 }}
+            >
+              목표 {target}
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: '18%',
+              textAlign: 'center',
+              pointerEvents: 'none',
+            }}
+          >
+            {(phase === 'counting' || phase === 'go') && (
+              <div
+                className="hero-num"
+                style={{
+                  fontSize: pulse ? 96 : 88,
+                  transition: 'font-size 0.15s',
+                  textShadow: '0 4px 24px rgba(0,0,0,0.6)',
+                }}
+              >
+                {reps}
+                <span style={{ fontSize: 36, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  {' '}
+                  / {target}
+                </span>
+              </div>
+            )}
+            {countdown !== null && (
+              <div className="hero-num" style={{ fontSize: 120, color: 'var(--accent)' }}>
+                {countdown}
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              left: 16,
+              right: 16,
+              bottom: 28,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                textAlign: 'center',
+                fontWeight: 600,
+                fontSize: 15,
+                color: stance.ok || phase === 'counting' ? 'var(--accent)' : '#fff',
+                textShadow: '0 2px 12px rgba(0,0,0,0.8)',
+              }}
+            >
+              {statusText}
+            </div>
+            {phase === 'counting' && (
+              <button
+                className="cta-secondary"
+                style={{ background: 'rgba(0,0,0,0.55)' }}
+                onClick={stopEarly}
+              >
+                끝내기
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

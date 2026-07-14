@@ -16,7 +16,10 @@ const WASM =
 const MODEL =
   'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
 
-export function usePose(videoRef: React.RefObject<HTMLVideoElement | null>) {
+export function usePose(
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  enabled = true,
+) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
@@ -25,6 +28,7 @@ export function usePose(videoRef: React.RefObject<HTMLVideoElement | null>) {
   const lastTs = useRef(0);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     (async () => {
       try {
@@ -42,7 +46,24 @@ export function usePose(videoRef: React.RefObject<HTMLVideoElement | null>) {
         setReady(true);
       } catch (e) {
         console.error(e);
-        setError('카메라를 위한 포즈 엔진을 불러오지 못했어요.');
+        // CPU fallback
+        try {
+          const vision = await FilesetResolver.forVisionTasks(WASM);
+          const landmarker = await PoseLandmarker.createFromOptions(vision, {
+            baseOptions: { modelAssetPath: MODEL, delegate: 'CPU' },
+            runningMode: 'VIDEO',
+            numPoses: 1,
+          });
+          if (cancelled) {
+            landmarker.close();
+            return;
+          }
+          landmarkerRef.current = landmarker;
+          setReady(true);
+        } catch (e2) {
+          console.error(e2);
+          setError('포즈 엔진을 불러오지 못했어요.');
+        }
       }
     })();
     return () => {
@@ -50,8 +71,9 @@ export function usePose(videoRef: React.RefObject<HTMLVideoElement | null>) {
       cancelAnimationFrame(rafRef.current);
       landmarkerRef.current?.close();
       landmarkerRef.current = null;
+      setReady(false);
     };
-  }, []);
+  }, [enabled]);
 
   const loop = useCallback(() => {
     const video = videoRef.current;
@@ -86,10 +108,10 @@ export function usePose(videoRef: React.RefObject<HTMLVideoElement | null>) {
   }, [videoRef]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !enabled) return;
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [ready, loop]);
+  }, [ready, enabled, loop]);
 
   return { ready, error, landmarks };
 }
@@ -98,16 +120,38 @@ export async function startCamera(
   video: HTMLVideoElement,
   facingMode: 'user' | 'environment' = 'user',
 ): Promise<MediaStream> {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: {
-      facingMode,
-      width: { ideal: 720 },
-      height: { ideal: 1280 },
-    },
-  });
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error('getUserMedia unsupported');
+  }
+
+  video.setAttribute('playsinline', 'true');
+  video.setAttribute('webkit-playsinline', 'true');
+  video.muted = true;
+
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: facingMode },
+        width: { ideal: 720 },
+        height: { ideal: 1280 },
+      },
+    });
+  } catch {
+    // Looser fallback for some Android WebViews
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: true,
+    });
+  }
+
   video.srcObject = stream;
-  await video.play();
+  try {
+    await video.play();
+  } catch {
+    // Autoplay policies — muted + playsinline usually OK after user gesture
+  }
   return stream;
 }
 
