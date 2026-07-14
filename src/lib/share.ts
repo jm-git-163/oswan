@@ -12,7 +12,7 @@ export function challengeShareText(challenge: Challenge, url: string) {
   return [
     `🥊 오스완 도전장`,
     `${challenge.fromNickname}님이 ${challenge.targetReps}개 클리어에 도전합니다.`,
-    `목표 채우면 오늘 스쿼트 완료 — 너도 오스완?`,
+    `아래 링크를 눌러 수락하고 스쿼트하세요.`,
     url,
     `#오스완 #오늘스쿼트완료`,
   ].join('\n');
@@ -80,8 +80,19 @@ export async function renderChallengeCardBlob(challenge: Challenge): Promise<Blo
   ctx.fillText('너도 오스완 할 수 있어?', w / 2, 1044);
 
   ctx.fillStyle = '#6E6E6E';
-  ctx.font = '500 26px Pretendard, sans-serif';
-  ctx.fillText('링크를 열어 도전을 수락하세요', w / 2, 1160);
+  ctx.font = '500 22px Pretendard, sans-serif';
+  ctx.fillText('링크를 눌러 도전 수락 · 카메라로 스쿼트', w / 2, 1140);
+
+  // Burn challenge URL so image-only Kakao shares still show where to tap
+  try {
+    const shareUrl = challengeShareUrl(challenge);
+    ctx.fillStyle = '#C8F54A';
+    ctx.font = '600 20px Pretendard, sans-serif';
+    const short = shareUrl.length > 54 ? `${shareUrl.slice(0, 52)}…` : shareUrl;
+    ctx.fillText(short, w / 2, 1195);
+  } catch {
+    /* */
+  }
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -152,7 +163,8 @@ function drawStick(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: num
 }
 
 /**
- * Opens OS share sheet. Pass preparedFile to avoid awaiting canvas (keeps user-gesture).
+ * Prefer link share so Kakao gets a tappable URL (accept → camera → squat).
+ * Image is opt-in — Kakao often drops the link when only a PNG is shared.
  */
 export function canNativeShare(): boolean {
   return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
@@ -160,7 +172,7 @@ export function canNativeShare(): boolean {
 
 export async function shareChallengeInvite(
   challenge: Challenge,
-  opts?: { preparedFile?: File | null },
+  opts?: { preparedFile?: File | null; preferImage?: boolean },
 ): Promise<ShareOutcome> {
   const url = challengeShareUrl(challenge);
   const title = '오스완 도전장 · 오늘 스쿼트 완료';
@@ -170,8 +182,22 @@ export async function shareChallengeInvite(
     return 'fallback';
   }
 
-  const file = opts?.preparedFile ?? null;
+  if (!opts?.preferImage) {
+    try {
+      await navigator.share({ title, text, url });
+      return 'shared';
+    } catch (err) {
+      if (isUserCancel(err)) return 'cancelled';
+    }
+    try {
+      await navigator.share({ title, text });
+      return 'shared';
+    } catch (err) {
+      if (isUserCancel(err)) return 'cancelled';
+    }
+  }
 
+  const file = opts?.preparedFile ?? null;
   if (file) {
     try {
       const data = { files: [file], title, text };
@@ -184,20 +210,16 @@ export async function shareChallengeInvite(
     }
   }
 
-  try {
-    await navigator.share({ title, text, url });
-    return 'shared';
-  } catch (err) {
-    if (isUserCancel(err)) return 'cancelled';
+  if (opts?.preferImage) {
+    try {
+      await navigator.share({ title, text, url });
+      return 'shared';
+    } catch (err) {
+      if (isUserCancel(err)) return 'cancelled';
+    }
   }
 
-  try {
-    await navigator.share({ title, text });
-    return 'shared';
-  } catch (err) {
-    if (isUserCancel(err)) return 'cancelled';
-    return 'fallback';
-  }
+  return 'fallback';
 }
 
 export async function sharePlainText(title: string, text: string): Promise<ShareOutcome> {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
+import { InAppBrowserGate } from './components/InAppBrowserGate';
 import { OnboardingGate } from './components/OnboardingGate';
 import { ChallengePage } from './pages/ChallengePage';
 import { ChallengesPage } from './pages/ChallengesPage';
@@ -23,20 +24,22 @@ export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
       <OnboardingGate>
-        <Routes>
-          <Route element={<AppShell />}>
-            <Route index element={<HomePage />} />
-            <Route path="history" element={<HistoryPage />} />
-            <Route path="ranking" element={<RankingPage />} />
-            <Route path="challenges" element={<ChallengesPage />} />
-            <Route path="me" element={<MePage />} />
-            <Route path="session" element={<SessionPage />} />
-            <Route path="result" element={<ResultPage />} />
-            <Route path="pride" element={<PridePage />} />
-            <Route path="c/:id" element={<ChallengePage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
+        <InAppBrowserGate>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route index element={<HomePage />} />
+              <Route path="history" element={<HistoryPage />} />
+              <Route path="ranking" element={<RankingPage />} />
+              <Route path="challenges" element={<ChallengesPage />} />
+              <Route path="me" element={<MePage />} />
+              <Route path="session" element={<SessionPage />} />
+              <Route path="result" element={<ResultPage />} />
+              <Route path="pride" element={<PridePage />} />
+              <Route path="c/:id" element={<ChallengePage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </InAppBrowserGate>
       </OnboardingGate>
     </BrowserRouter>
   );
