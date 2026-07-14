@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrandMark } from '../components/BrandMark';
 import { ShareSheet } from '../components/ShareSheet';
-import { resultShareText, shareChallengeInvite, sharePlainText } from '../lib/share';
+import { resultShareText, sharePlainText } from '../lib/share';
 import { createChallenge, getChallenge } from '../lib/storage';
 import { useAppStore } from '../store';
 import type { Challenge } from '../lib/types';
@@ -35,18 +35,13 @@ export function ResultPage() {
     await sharePlainText('오스완 · 오늘 스쿼트 완료', text);
   };
 
-  const sendChallenge = async () => {
+  const sendChallenge = () => {
     const c = createChallenge({
       fromSoftUserId: user.id,
       fromNickname: user.nickname,
       targetReps: result.targetReps,
     });
-    const outcome = await shareChallengeInvite(c);
-    if (outcome === 'copied' || outcome === 'fallback') {
-      setSheetChallenge(c);
-      return;
-    }
-    navigate(`/c/${c.id}`);
+    setSheetChallenge(c);
   };
 
   const challenge = result.challengeId ? getChallenge(result.challengeId) : null;
@@ -122,7 +117,7 @@ export function ResultPage() {
         <button className="cta-secondary" onClick={() => navigate('/pride')}>
           영상으로 자랑 (선택)
         </button>
-        <button className="cta-secondary" onClick={() => void sendChallenge()}>
+        <button className="cta-secondary" onClick={sendChallenge}>
           같은 개수로 도전장
         </button>
         <button className="cta-secondary" onClick={() => navigate(`/session?target=${result.targetReps}`)}>

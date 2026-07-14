@@ -1,4 +1,4 @@
-/** Oswan brand mark — squat stance in rounded plate */
+/** Oswan brand mark — squat stance + optional raster logo */
 export function BrandMark({
   size = 40,
   className,
@@ -7,24 +7,24 @@ export function BrandMark({
   className?: string;
 }) {
   return (
-    <svg
+    <img
       className={className}
+      src="/icon-192.png"
       width={size}
       height={size}
-      viewBox="0 0 64 64"
-      fill="none"
+      alt=""
       aria-hidden
-    >
-      <rect x="2" y="2" width="60" height="60" rx="14" fill="#1E1E1E" stroke="#C8F54A" strokeWidth="2.5" />
-      <circle cx="32" cy="16" r="5.5" stroke="#C8F54A" strokeWidth="2.2" />
-      <path
-        d="M32 22.5v12M32 34.5 20 48M32 34.5 44 48M32 28 21 36M32 28 43 36"
-        stroke="#C8F54A"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+      style={{
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.22),
+        display: 'block',
+        border: '1.5px solid rgba(200,245,74,0.55)',
+        background: '#1E1E1E',
+        objectFit: 'cover',
+        flexShrink: 0,
+      }}
+    />
   );
 }
 
@@ -35,10 +35,10 @@ export function BrandHeader({
   size?: 'sm' | 'md' | 'lg';
   showTagline?: boolean;
 }) {
-  const mark = size === 'lg' ? 56 : size === 'sm' ? 32 : 44;
-  const title = size === 'lg' ? 36 : size === 'sm' ? 22 : 28;
+  const mark = size === 'lg' ? 64 : size === 'sm' ? 40 : 52;
+  const title = size === 'lg' ? 40 : size === 'sm' ? 24 : 30;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
       <BrandMark size={mark} />
       <div>
         <div
@@ -46,19 +46,18 @@ export function BrandHeader({
             fontWeight: 800,
             fontSize: title,
             letterSpacing: '-0.03em',
-            lineHeight: 1.1,
+            lineHeight: 1.05,
           }}
         >
           오스완
         </div>
         {showTagline && (
           <div
-            className="meta"
             style={{
-              marginTop: 4,
-              fontSize: size === 'sm' ? 12 : 13,
+              marginTop: 6,
+              fontSize: size === 'sm' ? 13 : 15,
               color: 'var(--accent)',
-              fontWeight: 600,
+              fontWeight: 700,
             }}
           >
             오늘 스쿼트 완료

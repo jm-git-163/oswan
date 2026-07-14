@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BrandHeader } from '../components/BrandMark';
 import { ModelSquatExample } from '../components/ModelSquatExample';
 import { ShareSheet } from '../components/ShareSheet';
-import { shareChallengeInvite } from '../lib/share';
 import { clearStreak, createChallenge, listChallenges, todayReps } from '../lib/storage';
 import { useAppStore } from '../store';
 import type { Challenge } from '../lib/types';
@@ -26,19 +25,14 @@ export function HomePage() {
     [user.id, location.key],
   );
 
-  const sendChallenge = async () => {
+  const sendChallenge = () => {
     const c = createChallenge({
       fromSoftUserId: user.id,
       fromNickname: user.nickname,
       targetReps: target,
     });
-    // 같은 탭 제스처에서 OS 공유 시트 오픈 (카톡·메신저)
-    const outcome = await shareChallengeInvite(c);
-    if (outcome === 'copied' || outcome === 'fallback') {
-      setSheetChallenge(c);
-      return;
-    }
-    navigate(`/c/${c.id}`);
+    // 항상 도전장 시트 먼저 (썸네일 + 메신저 선택) — 조용한 링크 복사 금지
+    setSheetChallenge(c);
   };
 
   return (
@@ -108,7 +102,7 @@ export function HomePage() {
         </Link>
       )}
 
-      <button className="cta-secondary" style={{ marginTop: 12 }} onClick={() => void sendChallenge()}>
+      <button className="cta-secondary" style={{ marginTop: 12 }} onClick={sendChallenge}>
         친구에게 도전장
       </button>
 

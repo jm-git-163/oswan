@@ -4,7 +4,6 @@ import { BrandHeader } from '../components/BrandMark';
 import { ChallengeInviteCard } from '../components/ChallengeInviteCard';
 import { ShareSheet } from '../components/ShareSheet';
 import { fetchRemoteChallenge } from '../lib/api';
-import { shareChallengeInvite } from '../lib/share';
 import {
   acceptChallenge,
   decodeChallengePayload,
@@ -87,10 +86,7 @@ export function ChallengePage() {
     if (next) setChallenge(next);
   };
 
-  const onShare = async () => {
-    const outcome = await shareChallengeInvite(challenge);
-    if (outcome === 'copied' || outcome === 'fallback') setSheetOpen(true);
-  };
+  const onShare = () => setSheetOpen(true);
 
   return (
     <div className="page">
@@ -125,7 +121,7 @@ export function ChallengePage() {
           </button>
         )}
         {isFrom && (
-          <button className="cta-secondary" onClick={() => void onShare()}>
+          <button className="cta-secondary" onClick={onShare}>
             카톡·메신저로 보내기
           </button>
         )}

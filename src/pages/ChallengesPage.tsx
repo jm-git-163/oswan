@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BrandHeader } from '../components/BrandMark';
 import { ShareSheet } from '../components/ShareSheet';
-import { shareChallengeInvite } from '../lib/share';
 import { createChallenge, listChallenges } from '../lib/storage';
 import { useAppStore } from '../store';
 import type { Challenge } from '../lib/types';
@@ -19,18 +18,13 @@ export function ChallengesPage() {
     [user.id],
   );
 
-  const createAndShare = async () => {
+  const createAndShare = () => {
     const c = createChallenge({
       fromSoftUserId: user.id,
       fromNickname: user.nickname,
       targetReps: 30,
     });
-    const outcome = await shareChallengeInvite(c);
-    if (outcome === 'copied' || outcome === 'fallback') {
-      setSheetChallenge(c);
-      return;
-    }
-    navigate(`/c/${c.id}`);
+    setSheetChallenge(c);
   };
 
   return (
@@ -43,7 +37,7 @@ export function ChallengesPage() {
         같은 개수로 친구에게 도전장을 보내요.
       </p>
 
-      <button className="cta-primary" style={{ marginBottom: 20 }} onClick={() => void createAndShare()}>
+      <button className="cta-primary" style={{ marginBottom: 20 }} onClick={createAndShare}>
         새 도전장 보내고 공유 (30개)
       </button>
 
