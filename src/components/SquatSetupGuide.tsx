@@ -35,7 +35,7 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
         width="100%"
         style={{ display: 'block', borderRadius: 12, background: '#0a0a0a' }}
         role="img"
-        aria-label="① 폰 세우기 ② 점이 원 안에 들어가면 카운트 시작 ③ 내려갔다 올라오면 1개 ④ 음악·응원 기본 ON"
+        aria-label="① 폰 세우기 ② 점이 원 안에 들어가면 카운트 시작 ③ 내려갔다 올라오면 1개 ④ 음악·응원은 처음부터 켜짐"
       >
         <rect width="360" height="600" fill="#0a0a0a" />
 
@@ -124,7 +124,7 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
         </text>
 
         <text x="24" y="488" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
-          ④ 음악 · 응원 — 기본 ON
+          ④ 음악 · 응원 — 처음부터 켜짐
         </text>
         <rect x="24" y="502" width="150" height="40" rx="20" fill="rgba(200,245,74,0.18)" stroke="#C8F54A" strokeWidth="1.5" />
         <text x="48" y="528" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
@@ -135,7 +135,7 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
           응원 ON
         </text>
         <text x="24" y="568" fill="#a1a1a1" fontSize="11" fontFamily="sans-serif">
-          시작 화면에 켜져 있어요 · 칩을 누르면 끌 수 있어요
+          스쿼트 화면의 그 버튼을 누르면 끌 수 있어요
         </text>
         <text x="24" y="588" fill="#6e6e6e" fontSize="10" fontFamily="sans-serif">
           앉아 올라올 때 1회 · 반도 안 세요
@@ -146,7 +146,8 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
         <p className="meta" style={{ margin: '12px 0 0', fontSize: 12, lineHeight: 1.5 }}>
           <strong style={{ color: 'var(--accent)' }}>점 → 원 안</strong>이면 시작,{' '}
           <strong style={{ color: 'var(--accent)' }}>앉았다 일어서면</strong> 1개. 음악·응원은{' '}
-          <strong style={{ color: 'var(--accent)' }}>기본 ON</strong>, 칩으로 OFF.
+          <strong style={{ color: 'var(--accent)' }}>처음부터 켜져 있고</strong>, 「♪ 음악」「응원」
+          버튼으로 끌 수 있어요.
         </p>
       )}
     </div>

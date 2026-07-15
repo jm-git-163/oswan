@@ -25,17 +25,17 @@ export function CoachToggles({ prefs, onChange, variant = 'card' }: Props) {
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="meta">세션 응원</div>
       <p className="meta" style={{ fontSize: 12, marginTop: 6, lineHeight: 1.45 }}>
-        기본은 켜져 있어요. 원치 않으면 눌러서 끄면 됩니다.
+        처음부터 켜져 있어요. 끄고 싶으면 아래 버튼을 눌러 주세요.
       </p>
       <ToggleRow
         label="동기부여 음악"
-        hint="스쿼트 중 BGM · 기본 ON"
+        hint="스쿼트 중 BGM · 처음부터 켜짐"
         on={prefs.music}
         onToggle={() => toggle('music')}
       />
       <ToggleRow
         label="카운트 응원"
-        hint="개수마다 문구·음성 · 기본 ON"
+        hint="개수마다 문구·음성 · 처음부터 켜짐"
         on={prefs.cheer}
         onToggle={() => toggle('cheer')}
       />
