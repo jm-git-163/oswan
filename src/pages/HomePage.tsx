@@ -65,7 +65,7 @@ export function HomePage() {
       />
 
       <p className="meta" style={{ fontSize: 15, margin: '8px 0 18px', lineHeight: 1.5 }}>
-        목표 개수 채우면 오스완. 자극도 아래 카드에서 ‘개분’으로 맞춰 봐요.
+        목표 개수 채우면 오스완. 자극도 아래 카드에서 개수로 맞춰 봐요.
       </p>
 
       <SurfaceCard className="stack-sm" style={{ marginBottom: 14 }}>

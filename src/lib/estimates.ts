@@ -116,24 +116,29 @@ export function stimulusLabel(score: number): string {
   return '짧음';
 }
 
-/** 내부 계산용 자극 스케일 (UI에는 개수분으로만 표시) */
+/** 내부 계산용 자극 스케일 (UI에는 개로만 표시) */
 export const LOWER_STIM_GOAL = 55;
 export const CORE_STIM_GOAL = 40;
 
-/** 하루 하체·코어 ‘괜찮은 자극’을 스쿼트 개수로 환산한 기준 */
+/**
+ * 하루 ‘괜찮은 하체 자극’ 참고 개수.
+ * 체중 비례 아님. 맨몸 스쿼트 기준의 동기부여용 목표
+ * (내부 자극 스케일 LOWER_STIM_GOAL≈55를 일상 세트량으로 읽어 약 65개로 맞춤).
+ */
 export const DAILY_LOWER_REPS = 65;
+/** 코어는 스쿼트에서 하체보다 낮게 잡힌 참고 개수 */
 export const DAILY_CORE_REPS = 50;
 
 export function formatReps(n: number): string {
   return `${Math.round(n)}개`;
 }
 
-/** 환산량 — “65개분”처럼 실제 카운트와 같은 ‘개’ 단위로 통일 */
+/** @deprecated formatReps와 동일 — ‘개분’ 표현 제거 */
 export function formatRepShare(n: number): string {
-  return `${Math.round(n)}개분`;
+  return formatReps(n);
 }
 
-/** 자극 점수 → 하루 기준 대비 개수분 (사용자에게는 이 숫자만) */
+/** 자극 지수 → 하루 기준 대비 개수 */
 export function toRepEquiv(score: number, goalScore: number, goalReps: number): number {
   if (goalScore <= 0) return 0;
   return Math.max(0, Math.round((Math.max(0, score) / goalScore) * goalReps));
@@ -147,16 +152,19 @@ export function coreRepEquiv(score: number): number {
   return toRepEquiv(score, CORE_STIM_GOAL, DAILY_CORE_REPS);
 }
 
-/** @deprecated UI는 formatRepShare 사용. 공유 등 잔여 호출용 */
+/** @deprecated */
 export function formatPts(n: number): string {
-  return formatRepShare(toRepEquiv(n, LOWER_STIM_GOAL, DAILY_LOWER_REPS));
+  return formatReps(toRepEquiv(n, LOWER_STIM_GOAL, DAILY_LOWER_REPS));
 }
 
-export const STIMULUS_GOAL_HINT =
-  `하루 하체 자극은 스쿼트 약 ${DAILY_LOWER_REPS}개분이면 괜찮아요. 오늘 한 개수와 같은 ‘개’로 맞춰 둔 환산입니다.`;
+/** 65개가 어떻게 정해졌는지 — 짧은 안내 */
+export const STIMULUS_BASIS_HINT =
+  `하루 하체 약 ${DAILY_LOWER_REPS}개는 맨몸 스쿼트용 참고 목표예요. 체중에 따라 바뀌지 않고, ‘이 정도면 하루 하체 자극이 괜찮은 편’으로 정한 숫자입니다. 칼로리만 체중을 반영해요.`;
+
+export const STIMULUS_GOAL_HINT = STIMULUS_BASIS_HINT;
 
 export const STIMULUS_VS_REPS_HINT =
-  `속도·자세가 반영된 환산이에요. 천천히 잘 앉으면 같은 개수라도 개수분이 조금 더 높게 나와요.`;
+  '템포(속도)도 반영해요. 같은 횟수라도 천천히 앉았다 일어나면 자극 개수가 조금 더 높게 나와요.';
 
 export type StimulusVerdict = 'go' | 'push' | 'done' | 'rest';
 
@@ -186,7 +194,7 @@ function remainingLowerReps(lowerBody: number): number {
   return Math.max(0, DAILY_LOWER_REPS - lowerRepEquiv(lowerBody));
 }
 
-/** 코치 — UI·문구는 전부 ‘개 / 개분’. 내부만 점수. */
+/** 코치 — UI는 전부 ‘개’. 내부만 자극 지수. */
 export function buildStimulusCoach(input: {
   kcal: number;
   lowerBody: number;
@@ -196,8 +204,8 @@ export function buildStimulusCoach(input: {
   const { lowerBody, core, reps } = input;
   const lowerEq = lowerRepEquiv(lowerBody);
 
-  const meaningLower = `허벅지·엉덩이 자극을 스쿼트 개수로 환산한 값이에요. 하루 약 ${DAILY_LOWER_REPS}개분이면 괜찮은 하체 자극입니다.`;
-  const meaningCore = `배·허리 버티기를 개수로 환산한 값이에요. 하루 약 ${DAILY_CORE_REPS}개분이면 OK. 스쿼트에선 하체보다 낮게 나와요.`;
+  const meaningLower = `허벅지·엉덩이 자극을 개수로 맞춘 값이에요. 하루 약 ${DAILY_LOWER_REPS}개면 괜찮은 하체 자극으로 봅니다.`;
+  const meaningCore = `배·허리 버티기를 개수로 맞춘 값이에요. 하루 약 ${DAILY_CORE_REPS}개면 OK. 스쿼트에선 하체보다 낮게 나와요.`;
 
   if (reps <= 0) {
     return {
@@ -221,7 +229,7 @@ export function buildStimulusCoach(input: {
 
   if (lowerBody >= LOWER_STIM_GOAL && core >= CORE_STIM_GOAL) {
     return {
-      headline: `하체 ${formatRepShare(DAILY_LOWER_REPS)} 자극 도달`,
+      headline: `하체 ${formatReps(DAILY_LOWER_REPS)} 자극 도달`,
       action: `더 하고 싶으면 스쿼트 ${formatReps(10)}~${formatReps(15)}만 추가`,
       verdict: 'done',
       meaningLower,
@@ -234,7 +242,7 @@ export function buildStimulusCoach(input: {
     const extra = left > 0 ? Math.max(10, Math.min(40, Math.ceil(left / 5) * 5)) : 10;
     return {
       headline: '하체 자극이 거의 찼어요',
-      action: `${formatRepShare(DAILY_LOWER_REPS)}까지 · 스쿼트 ${formatReps(extra)}만 더`,
+      action: `${formatReps(DAILY_LOWER_REPS)}까지 · 스쿼트 ${formatReps(extra)}만 더`,
       verdict: 'push',
       meaningLower,
       meaningCore,
@@ -260,7 +268,7 @@ export function buildStimulusCoach(input: {
       : recommendExtraReps(Math.max(10, LOWER_STIM_GOAL - lowerBody));
   return {
     headline: '하체 자극이 아직 가벼워요',
-    action: `하루 ${formatRepShare(DAILY_LOWER_REPS)}을 향해 · 지금 ${formatRepShare(lowerEq)} · ${formatReps(extra)} 추천`,
+    action: `하루 ${formatReps(DAILY_LOWER_REPS)}을 향해 · 지금 ${formatReps(lowerEq)} · ${formatReps(extra)} 추천`,
     verdict: 'go',
     meaningLower,
     meaningCore,

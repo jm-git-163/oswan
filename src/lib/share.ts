@@ -1,6 +1,6 @@
 import type { Challenge } from './types';
 import { challengeShareUrl } from './storage';
-import { coreRepEquiv, formatRepShare, lowerRepEquiv } from './estimates';
+import { coreRepEquiv, formatReps, lowerRepEquiv } from './estimates';
 
 export type ShareOutcome = 'shared' | 'cancelled' | 'copied' | 'fallback';
 
@@ -27,7 +27,7 @@ export function resultShareText(
   est?: { kcal: number; lowerBody: number; core: number },
 ) {
   const estLine = est
-    ? `\n약 ${est.kcal}kcal · 하체 ${formatRepShare(lowerRepEquiv(est.lowerBody))} · 코어 ${formatRepShare(coreRepEquiv(est.core))}`
+    ? `\n약 ${est.kcal}kcal · 하체 ${formatReps(lowerRepEquiv(est.lowerBody))} · 코어 ${formatReps(coreRepEquiv(est.core))}`
     : '';
   return cleared
     ? `${nickname} · ${reps}개 · 오스완!${estLine}\n오늘 스쿼트 완료 #오스완 #오늘스쿼트완료`

@@ -4,7 +4,7 @@ import {
   estimateSession,
   buildStimulusCoach,
   coreRepEquiv,
-  formatRepShare,
+  formatReps,
   lowerRepEquiv,
   stimulusLabel,
   type SessionEstimates as Estimates,
@@ -41,7 +41,7 @@ function Bar({
       >
         <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</span>
         <span className="meta" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-          {formatRepShare(current)} / {formatRepShare(goal)}
+          {formatReps(current)} / {formatReps(goal)}
         </span>
       </div>
       <div
@@ -78,8 +78,8 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
   if (compact) {
     return (
       <div className="meta" style={{ fontSize: 12, marginTop: 6, wordBreak: 'keep-all' }}>
-        약 {e.kcal} kcal · 하체 {stimulusLabel(e.lowerBody)} {formatRepShare(lowerEq)} · 코어{' '}
-        {stimulusLabel(e.core)} {formatRepShare(coreEq)}
+        약 {e.kcal} kcal · 하체 {stimulusLabel(e.lowerBody)} {formatReps(lowerEq)} · 코어{' '}
+        {stimulusLabel(e.core)} {formatReps(coreEq)}
       </div>
     );
   }
@@ -106,7 +106,7 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
           {e.weightKg}kg 기준
           {e.usedDefaultWeight ? ' (기본)' : ''}
           <br />
-          하루 하체 {formatRepShare(DAILY_LOWER_REPS)}
+          하루 하체 {formatReps(DAILY_LOWER_REPS)}
         </div>
       </div>
 
@@ -115,13 +115,13 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
           label="하체 자극"
           current={lowerEq}
           goal={DAILY_LOWER_REPS}
-          hint={`허벅지·엉덩이 · 하루 ${formatRepShare(DAILY_LOWER_REPS)}이면 OK`}
+          hint={`허벅지·엉덩이 · 하루 ${formatReps(DAILY_LOWER_REPS)}이면 OK`}
         />
         <Bar
           label="코어 자극"
           current={coreEq}
           goal={DAILY_CORE_REPS}
-          hint={`배·허리 · 하루 ${formatRepShare(DAILY_CORE_REPS)}이면 OK`}
+          hint={`배·허리 · 하루 ${formatReps(DAILY_CORE_REPS)}이면 OK`}
         />
       </div>
 

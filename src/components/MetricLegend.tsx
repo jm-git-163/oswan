@@ -1,9 +1,10 @@
-/** 자극 = 하루 개수분 환산 안내 (점수 개념 없음) */
+/** 하루 자극 기준(개) 안내 — 체중 비례 아님 */
 
 import {
   DAILY_CORE_REPS,
   DAILY_LOWER_REPS,
-  formatRepShare,
+  STIMULUS_BASIS_HINT,
+  formatReps,
 } from '../lib/estimates';
 
 type Props = {
@@ -47,7 +48,7 @@ export function MetricLegend({ compact, reps }: Props) {
             whiteSpace: 'nowrap',
           }}
         >
-          하체 목표 {formatRepShare(DAILY_LOWER_REPS)}
+          하체 참고 {formatReps(DAILY_LOWER_REPS)}
         </span>
       </div>
     );
@@ -64,11 +65,10 @@ export function MetricLegend({ compact, reps }: Props) {
       }}
     >
       <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.4 }}>
-        하루 하체 자극 ≈ 스쿼트 {formatRepShare(DAILY_LOWER_REPS)}
+        하루 하체 참고 목표 {formatReps(DAILY_LOWER_REPS)}
       </div>
       <p className="meta" style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5 }}>
-        자극도 전부 ‘개’로 맞춰 봤어요. 코어는 약 {formatRepShare(DAILY_CORE_REPS)}이면 OK.
-        천천히 깊게 앉으면 같은 횟수라도 개수분이 조금 더 높게 나와요.
+        {STIMULUS_BASIS_HINT} 코어는 약 {formatReps(DAILY_CORE_REPS)}을 참고해요.
       </p>
     </div>
   );

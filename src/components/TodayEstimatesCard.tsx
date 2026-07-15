@@ -5,7 +5,7 @@ import {
   DAILY_LOWER_REPS,
   buildStimulusCoach,
   coreRepEquiv,
-  formatRepShare,
+  formatReps,
   lowerRepEquiv,
   stimulusLabel,
   type StimulusVerdict,
@@ -39,7 +39,7 @@ const VERDICT_TAG: Record<StimulusVerdict, string> = {
   rest: '잘했어요',
 };
 
-/** 홈 자극 카드 — 전부 개/개분 */
+/** 홈 자극 카드 — 전부 ‘개’ */
 export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
   if (reps <= 0) return null;
 
@@ -172,10 +172,10 @@ function GoalBar({
           </span>
         </span>
         <span style={{ fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}>
-          {formatRepShare(current)}
+          {formatReps(current)}
           <span className="meta" style={{ fontWeight: 600 }}>
             {' '}
-            / {formatRepShare(goal)}
+            / {formatReps(goal)}
           </span>
         </span>
       </div>
@@ -198,7 +198,7 @@ function GoalBar({
         />
       </div>
       <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-        {gap > 0 ? `${formatRepShare(gap)} 남음` : '하루 자극 OK'}
+        {gap > 0 ? `${formatReps(gap)} 남음` : '하루 자극 OK'}
       </div>
     </div>
   );

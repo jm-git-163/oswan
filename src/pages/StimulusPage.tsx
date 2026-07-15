@@ -5,10 +5,10 @@ import { useHomeStats } from '../hooks/useHomeStats';
 import {
   DAILY_CORE_REPS,
   DAILY_LOWER_REPS,
+  STIMULUS_BASIS_HINT,
   STIMULUS_VS_REPS_HINT,
   buildStimulusCoach,
   coreRepEquiv,
-  formatRepShare,
   formatReps,
   lowerRepEquiv,
   stimulusLabel,
@@ -45,7 +45,7 @@ export function StimulusPage() {
         오늘의 자극
       </h1>
       <p className="meta" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
-        자극도 스쿼트 개수로 환산해서 봐요. 하체는 하루 약 {formatRepShare(DAILY_LOWER_REPS)}.
+        하체 자극을 하루 약 {formatReps(DAILY_LOWER_REPS)} 기준으로 맞춰 봐요.
       </p>
 
       <div style={{ marginTop: 16 }}>
@@ -114,7 +114,7 @@ export function StimulusPage() {
         </div>
         {left > 0 && coach.verdict !== 'rest' && (
           <div className="meta" style={{ marginTop: 12, fontSize: 13 }}>
-            하체까지 약 {formatRepShare(left)} 남음
+            하체까지 약 {formatReps(left)} 남음
           </div>
         )}
       </div>
@@ -152,19 +152,16 @@ export function StimulusPage() {
           <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 6 }}>kcal</span>
         </div>
         <p className="meta" style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.45 }}>
-          스쿼트는 칼로리보다 자극이 동기가 됩니다. 숫자는 참고용이에요.
+          스쿼트는 칼로리보다 자극이 동기가 됩니다. 칼로리만 체중을 반영해요.
         </p>
       </div>
 
       <div style={{ marginTop: 20, display: 'grid', gap: 10 }}>
-        <GuideRow
-          title="하루 기준"
-          body={`하체 약 ${formatRepShare(DAILY_LOWER_REPS)} · 코어 약 ${formatRepShare(DAILY_CORE_REPS)}. 이만큼이면 ‘괜찮은 자극’으로 봐요.`}
-        />
-        <GuideRow title="환산이란" body={STIMULUS_VS_REPS_HINT} />
+        <GuideRow title="기준 개수" body={STIMULUS_BASIS_HINT} />
+        <GuideRow title="템포 반영" body={STIMULUS_VS_REPS_HINT} />
         <GuideRow
           title="의료 아님"
-          body="근력·체성분 측정이 아닙니다. 개수와 템포로 만든 추정이에요."
+          body="근력·체성분 측정이 아닙니다. 개수와 템포로 만든 참고용 추정이에요."
         />
       </div>
 
@@ -201,7 +198,7 @@ function ScoreTile({
   return (
     <div className="surface-card" style={{ padding: 14 }}>
       <div className="meta" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
-        {label} · 목표 {formatRepShare(goal)}
+        {label} · 목표 {formatReps(goal)}
       </div>
       <div
         style={{
@@ -212,7 +209,7 @@ function ScoreTile({
           whiteSpace: 'nowrap',
         }}
       >
-        {formatRepShare(current)}
+        {formatReps(current)}
         <span className="meta" style={{ fontSize: 13, fontWeight: 600, marginLeft: 6 }}>
           {feel}
         </span>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { backendStatus, fetchMyWeekStats, type DayStat } from '../lib/api';
-import { estimateSession, estimateSessionsTotal, buildStimulusCoach, stimulusLabel, lowerRepEquiv, coreRepEquiv, DAILY_LOWER_REPS, DAILY_CORE_REPS, formatRepShare } from '../lib/estimates';
+import { estimateSession, estimateSessionsTotal, buildStimulusCoach, stimulusLabel, lowerRepEquiv, coreRepEquiv, DAILY_LOWER_REPS, DAILY_CORE_REPS, formatReps } from '../lib/estimates';
 import { last7Days, listSessions } from '../lib/storage';
 import { useAppStore } from '../store';
 
@@ -110,7 +110,7 @@ export function HistoryPage() {
               {stimulusLabel(weekEst.lowerBody)}
             </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              하체 · {formatRepShare(lowerRepEquiv(weekEst.lowerBody))}/{formatRepShare(DAILY_LOWER_REPS)}
+              하체 · {formatReps(lowerRepEquiv(weekEst.lowerBody))}/{formatReps(DAILY_LOWER_REPS)}
             </div>
           </div>
           <div>
@@ -118,12 +118,12 @@ export function HistoryPage() {
               {stimulusLabel(weekEst.core)}
             </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              코어 · {formatRepShare(coreRepEquiv(weekEst.core))}/{formatRepShare(DAILY_CORE_REPS)}
+              코어 · {formatReps(coreRepEquiv(weekEst.core))}/{formatReps(DAILY_CORE_REPS)}
             </div>
           </div>
         </div>
         <p className="meta" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.4 }}>
-          칼로리는 합산, 하체·코어는 세션 평균 자극(개분). 하루 하체 {formatRepShare(DAILY_LOWER_REPS)} · 막대는 실제 스쿼트 개수
+          칼로리는 합산(체중 반영), 하체·코어는 세션 평균 자극 개수. 하루 하체 참고 {formatReps(DAILY_LOWER_REPS)} · 막대는 실제 개수
         </p>
       </div>
 
@@ -178,7 +178,7 @@ export function HistoryPage() {
                       core: est.core,
                       reps: s.reps,
                     });
-                    return `${c.headline} · 하체 ${formatRepShare(lowerRepEquiv(est.lowerBody))}/${formatRepShare(DAILY_LOWER_REPS)} · 코어 ${formatRepShare(coreRepEquiv(est.core))}/${formatRepShare(DAILY_CORE_REPS)}`;
+                    return `${c.headline} · 하체 ${formatReps(lowerRepEquiv(est.lowerBody))}/${formatReps(DAILY_LOWER_REPS)} · 코어 ${formatReps(coreRepEquiv(est.core))}/${formatReps(DAILY_CORE_REPS)}`;
                   })()}
                 </div>
               </div>
