@@ -65,7 +65,7 @@ export function HomePage() {
       />
 
       <p className="meta" style={{ fontSize: 15, margin: '8px 0 18px', lineHeight: 1.5 }}>
-        이번에 할 개수를 채우면 오스완. 자극은 아래 카드에서 맞춰 봐요.
+        아래에 정한 개수를 채우면 오스완.
       </p>
 
       <SurfaceCard className="stack-sm" style={{ marginBottom: 14 }}>
