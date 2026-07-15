@@ -62,76 +62,82 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
         <text x="24" y="158" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
           ② 머리 점이 동그라미 안 → 카운트 시작
         </text>
-        <rect x="24" y="172" width="150" height="110" rx="14" fill="#151515" stroke="#3a3a3a" strokeWidth="1.5" />
-        <text x="40" y="194" fill="#6e6e6e" fontSize="10" fontFamily="sans-serif">
+        {/* taller cards so vertical oval + caption don't overlap */}
+        <rect x="24" y="170" width="150" height="126" rx="14" fill="#151515" stroke="#3a3a3a" strokeWidth="1.5" />
+        <text x="40" y="190" fill="#6e6e6e" fontSize="10" fontFamily="sans-serif">
           아직 밖
         </text>
-        <ellipse cx="99" cy="232" rx="22" ry="34" fill="none" stroke="#6e6e6e" strokeWidth="2.5" strokeDasharray="5 4" />
-        <circle cx="52" cy="222" r="6" fill="#ff6b6b" />
-        <text x="40" y="268" fill="#ff8a8a" fontSize="10" fontFamily="sans-serif">
+        <ellipse cx="99" cy="230" rx="20" ry="30" fill="none" stroke="#6e6e6e" strokeWidth="2.5" strokeDasharray="5 4" />
+        <circle cx="54" cy="218" r="6" fill="#ff6b6b" />
+        <text x="52" y="280" fill="#ff8a8a" fontSize="10" fontFamily="sans-serif" textAnchor="middle">
           대기 중…
         </text>
 
-        <rect x="186" y="172" width="150" height="110" rx="14" fill="#151515" stroke="rgba(200,245,74,0.45)" strokeWidth="1.5" />
-        <text x="202" y="194" fill="#C8F54A" fontSize="10" fontFamily="sans-serif">
+        <rect x="186" y="170" width="150" height="126" rx="14" fill="#151515" stroke="rgba(200,245,74,0.45)" strokeWidth="1.5" />
+        <text x="202" y="190" fill="#C8F54A" fontSize="10" fontFamily="sans-serif">
           원 안 OK
         </text>
-        <ellipse cx="261" cy="232" rx="22" ry="34" fill="none" stroke="#C8F54A" strokeWidth="3" />
-        <circle cx="261" cy="232" r="7" fill="#C8F54A" />
-        <text x="214" y="268" fill="#C8F54A" fontSize="10" fontWeight="700" fontFamily="sans-serif">
+        <ellipse cx="261" cy="230" rx="20" ry="30" fill="none" stroke="#C8F54A" strokeWidth="3" />
+        <circle cx="261" cy="230" r="7" fill="#C8F54A" />
+        <text x="261" y="280" fill="#C8F54A" fontSize="10" fontWeight="700" fontFamily="sans-serif" textAnchor="middle">
           ▶ 카운트 시작!
         </text>
 
-        <text x="24" y="318" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
+        <text x="24" y="322" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
           ③ 내려갔다 올라오면 +1개
         </text>
-        <rect x="24" y="332" width="312" height="118" rx="14" fill="#151515" stroke="#2a2a2a" strokeWidth="1.5" />
-        <circle cx="78" cy="368" r="9" fill="none" stroke="#fff" strokeWidth="2" />
+        <rect x="24" y="334" width="312" height="132" rx="14" fill="#151515" stroke="#2a2a2a" strokeWidth="1.5" />
+        {/* figures sit above captions — feet end ~424, labels at 446 */}
+        <circle cx="72" cy="362" r="8" fill="none" stroke="#fff" strokeWidth="2" />
         <path
-          d="M78 378 L78 408 M78 390 L62 398 M78 390 L94 398 M78 408 L66 438 M78 408 L90 438"
+          d="M72 371 L72 398 M72 382 L58 390 M72 382 L86 390 M72 398 L62 424 M72 398 L82 424"
           fill="none"
           stroke="#fff"
           strokeWidth="2"
           strokeLinecap="round"
         />
-        <text x="56" y="438" fill="#a1a1a1" fontSize="10" fontFamily="sans-serif">
+        <text x="72" y="446" fill="#a1a1a1" fontSize="10" fontFamily="sans-serif" textAnchor="middle">
           서 있음
         </text>
-        <path d="M118 400 L148 400" stroke="#C8F54A" strokeWidth="2.5" />
-        <circle cx="198" cy="388" r="9" fill="none" stroke="#C8F54A" strokeWidth="2" />
+
+        <path d="M108 392 L136 392" stroke="#C8F54A" strokeWidth="2.5" />
+
+        <circle cx="178" cy="378" r="8" fill="none" stroke="#C8F54A" strokeWidth="2" />
         <path
-          d="M198 398 L198 418 M198 406 L180 414 M198 406 L216 414 M198 418 L184 442 M198 418 L212 442"
+          d="M178 387 L178 404 M178 394 L162 402 M178 394 L194 402 M178 404 L166 424 M178 404 L190 424"
           fill="none"
           stroke="#C8F54A"
           strokeWidth="2"
           strokeLinecap="round"
         />
-        <text x="172" y="438" fill="#C8F54A" fontSize="10" fontFamily="sans-serif">
+        <text x="178" y="446" fill="#C8F54A" fontSize="10" fontFamily="sans-serif" textAnchor="middle">
           내려감
         </text>
-        <path d="M238 400 L268 400" stroke="#C8F54A" strokeWidth="2.5" />
-        <circle cx="308" cy="368" r="9" fill="none" stroke="#fff" strokeWidth="2" />
+
+        <path d="M214 392 L242 392" stroke="#C8F54A" strokeWidth="2.5" />
+
+        <circle cx="290" cy="362" r="8" fill="none" stroke="#fff" strokeWidth="2" />
         <path
-          d="M308 378 L308 408 M308 390 L292 398 M308 390 L324 398 M308 408 L296 438 M308 408 L320 438"
+          d="M290 371 L290 398 M290 382 L276 390 M290 382 L304 390 M290 398 L280 424 M290 398 L300 424"
           fill="none"
           stroke="#fff"
           strokeWidth="2"
           strokeLinecap="round"
         />
-        <rect x="286" y="428" width="46" height="18" rx="9" fill="#C8F54A" />
-        <text x="294" y="441" fill="#0a0a0a" fontSize="11" fontWeight="800" fontFamily="sans-serif">
+        <rect x="268" y="436" width="44" height="18" rx="9" fill="#C8F54A" />
+        <text x="290" y="449" fill="#0a0a0a" fontSize="11" fontWeight="800" fontFamily="sans-serif" textAnchor="middle">
           +1
         </text>
 
-        <text x="24" y="488" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
+        <text x="24" y="492" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
           ④ 음악 · 응원 — 처음부터 켜짐
         </text>
-        <rect x="24" y="502" width="150" height="40" rx="20" fill="rgba(200,245,74,0.18)" stroke="#C8F54A" strokeWidth="1.5" />
-        <text x="48" y="528" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
+        <rect x="24" y="504" width="150" height="40" rx="20" fill="rgba(200,245,74,0.18)" stroke="#C8F54A" strokeWidth="1.5" />
+        <text x="48" y="530" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
           ♪ 음악 ON
         </text>
-        <rect x="186" y="502" width="150" height="40" rx="20" fill="rgba(200,245,74,0.18)" stroke="#C8F54A" strokeWidth="1.5" />
-        <text x="208" y="528" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
+        <rect x="186" y="504" width="150" height="40" rx="20" fill="rgba(200,245,74,0.18)" stroke="#C8F54A" strokeWidth="1.5" />
+        <text x="208" y="530" fill="#C8F54A" fontSize="13" fontWeight="800" fontFamily="sans-serif">
           응원 ON
         </text>
         <text x="24" y="568" fill="#a1a1a1" fontSize="11" fontFamily="sans-serif">
