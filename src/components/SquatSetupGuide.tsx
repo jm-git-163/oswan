@@ -35,7 +35,7 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
         width="100%"
         style={{ display: 'block', borderRadius: 12, background: '#0a0a0a' }}
         role="img"
-        aria-label="① 폰 세우기 ② 점이 원 안에 들어가면 카운트 시작 ③ 내려갔다 올라오면 1개 ④ 음악·응원은 처음부터 켜짐"
+        aria-label="① 폰 세우기 ② 점이 원 안에 들어가면 카운트 시작 ③ 내려갔다 올라오면 1개 ④ 음악·응원은 처음부터 켜짐. 자세·조명에 따라 개수가 ±1~2개 어긋날 수 있음"
       >
         <rect width="360" height="600" fill="#0a0a0a" />
 
@@ -142,8 +142,20 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
         </text>
       </svg>
 
+      <p
+        className="meta"
+        style={{
+          margin: gate ? '10px 0 0' : '8px 0 0',
+          fontSize: gate ? 12 : 11,
+          lineHeight: 1.45,
+          wordBreak: 'keep-all',
+        }}
+      >
+        조명·각도·속도에 따라 개수가 ±1~2개 어긋날 수 있어요. 머리 점을 원 안에 두고 일정한 속도로 해 주세요.
+      </p>
+
       {gate && (
-        <p className="meta" style={{ margin: '12px 0 0', fontSize: 12, lineHeight: 1.5 }}>
+        <p className="meta" style={{ margin: '8px 0 0', fontSize: 12, lineHeight: 1.5, wordBreak: 'keep-all' }}>
           <strong style={{ color: 'var(--accent)' }}>점 → 원 안</strong>이면 시작,{' '}
           <strong style={{ color: 'var(--accent)' }}>앉았다 일어서면</strong> 1개. 음악·안내는{' '}
           <strong style={{ color: 'var(--accent)' }}>처음부터 켜져 있고</strong>, 「♪ 음악」「안내·응원」
