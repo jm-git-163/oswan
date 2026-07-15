@@ -3,12 +3,14 @@ import { BrandHeader } from '../components/BrandMark';
 import { MetricLegend } from '../components/MetricLegend';
 import { useHomeStats } from '../hooks/useHomeStats';
 import {
-  CORE_STIM_GOAL,
-  LOWER_STIM_GOAL,
+  DAILY_CORE_REPS,
+  DAILY_LOWER_REPS,
   STIMULUS_VS_REPS_HINT,
   buildStimulusCoach,
-  formatPts,
+  coreRepEquiv,
+  formatRepShare,
   formatReps,
+  lowerRepEquiv,
   stimulusLabel,
 } from '../lib/estimates';
 import { useAppStore } from '../store';
@@ -23,6 +25,9 @@ export function StimulusPage() {
     core: todayEst.core,
     reps,
   });
+  const lowerEq = lowerRepEquiv(todayEst.lowerBody);
+  const coreEq = coreRepEquiv(todayEst.core);
+  const left = Math.max(0, DAILY_LOWER_REPS - lowerEq);
 
   return (
     <div className="page page-enter">
@@ -40,7 +45,7 @@ export function StimulusPage() {
         오늘의 자극
       </h1>
       <p className="meta" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
-        개수와 점수는 서로 다른 단위예요.
+        자극도 스쿼트 개수로 환산해서 봐요. 하체는 하루 약 {formatRepShare(DAILY_LOWER_REPS)}.
       </p>
 
       <div style={{ marginTop: 16 }}>
@@ -57,7 +62,7 @@ export function StimulusPage() {
         }}
       >
         <div className="meta" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
-          오늘 스쿼트 · 개수
+          오늘 실제로 한 스쿼트
         </div>
         <div
           style={{
@@ -107,6 +112,11 @@ export function StimulusPage() {
         >
           {coach.action}
         </div>
+        {left > 0 && coach.verdict !== 'rest' && (
+          <div className="meta" style={{ marginTop: 12, fontSize: 13 }}>
+            하체까지 약 {formatRepShare(left)} 남음
+          </div>
+        )}
       </div>
 
       <div
@@ -119,14 +129,16 @@ export function StimulusPage() {
       >
         <ScoreTile
           label="하체"
-          score={todayEst.lowerBody}
-          goal={LOWER_STIM_GOAL}
+          current={lowerEq}
+          goal={DAILY_LOWER_REPS}
+          feel={stimulusLabel(todayEst.lowerBody)}
           blurb={coach.meaningLower}
         />
         <ScoreTile
           label="코어"
-          score={todayEst.core}
-          goal={CORE_STIM_GOAL}
+          current={coreEq}
+          goal={DAILY_CORE_REPS}
+          feel={stimulusLabel(todayEst.core)}
           blurb={coach.meaningCore}
         />
       </div>
@@ -144,26 +156,20 @@ export function StimulusPage() {
         </p>
       </div>
 
-      <div
-        style={{
-          marginTop: 20,
-          display: 'grid',
-          gap: 10,
-        }}
-      >
+      <div style={{ marginTop: 20, display: 'grid', gap: 10 }}>
         <GuideRow
-          title="자극 점수"
-          body={`하체 ${formatPts(LOWER_STIM_GOAL)}+ · 코어 ${formatPts(CORE_STIM_GOAL)}+ (0~100점). 하루 ‘괜찮은 자극’ 기준`}
+          title="하루 기준"
+          body={`하체 약 ${formatRepShare(DAILY_LOWER_REPS)} · 코어 약 ${formatRepShare(DAILY_CORE_REPS)}. 이만큼이면 ‘괜찮은 자극’으로 봐요.`}
         />
-        <GuideRow title="개수 ≠ 점수" body={STIMULUS_VS_REPS_HINT} />
+        <GuideRow title="환산이란" body={STIMULUS_VS_REPS_HINT} />
         <GuideRow
           title="의료 아님"
-          body="근력·체성분 측정이 아닙니다. 개수와 밀도로 만든 추정이에요."
+          body="근력·체성분 측정이 아닙니다. 개수와 템포로 만든 추정이에요."
         />
       </div>
 
       <Link
-        to={`/session?target=${Math.max(20, Math.min(50, Math.round(reps || 30)))}`}
+        to={`/session?target=${Math.max(20, Math.min(50, left > 0 ? left : Math.round(reps || 30)))}`}
         className="cta-primary"
         style={{ marginTop: 28, display: 'flex', textAlign: 'center', justifyContent: 'center' }}
       >
@@ -180,33 +186,35 @@ export function StimulusPage() {
 
 function ScoreTile({
   label,
-  score,
+  current,
   goal,
+  feel,
   blurb,
 }: {
   label: string;
-  score: number;
+  current: number;
   goal: number;
+  feel: string;
   blurb: string;
 }) {
-  const pct = Math.min(100, Math.max(0, score));
+  const pct = Math.min(100, Math.max(0, (current / goal) * 100));
   return (
     <div className="surface-card" style={{ padding: 14 }}>
-      <div className="meta" style={{ fontSize: 11 }}>
-        {label} · 자극 {formatPts(goal)}+
+      <div className="meta" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
+        {label} · 목표 {formatRepShare(goal)}
       </div>
       <div
         style={{
-          fontSize: 36,
+          fontSize: 28,
           fontWeight: 800,
           marginTop: 4,
           letterSpacing: '-0.04em',
           whiteSpace: 'nowrap',
         }}
       >
-        {formatPts(score)}
+        {formatRepShare(current)}
         <span className="meta" style={{ fontSize: 13, fontWeight: 600, marginLeft: 6 }}>
-          {stimulusLabel(score)}
+          {feel}
         </span>
       </div>
       <div
@@ -222,7 +230,7 @@ function ScoreTile({
           style={{
             width: `${pct}%`,
             height: '100%',
-            background: score >= goal ? 'var(--accent)' : '#FFD23F',
+            background: current >= goal ? 'var(--accent)' : '#FFD23F',
             borderRadius: 999,
           }}
         />

@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 import { MetricLegend } from './MetricLegend';
 import {
-  CORE_STIM_GOAL,
-  LOWER_STIM_GOAL,
+  DAILY_CORE_REPS,
+  DAILY_LOWER_REPS,
   buildStimulusCoach,
-  formatPts,
+  coreRepEquiv,
+  formatRepShare,
+  lowerRepEquiv,
   stimulusLabel,
   type StimulusVerdict,
 } from '../lib/estimates';
@@ -37,11 +39,13 @@ const VERDICT_TAG: Record<StimulusVerdict, string> = {
   rest: '잘했어요',
 };
 
-/** Compact home card — coach first, scores clearly in ‘점’ (not 개) */
+/** 홈 자극 카드 — 전부 개/개분 */
 export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
   if (reps <= 0) return null;
 
   const coach = buildStimulusCoach({ kcal, lowerBody, core, reps });
+  const lowerEq = lowerRepEquiv(lowerBody);
+  const coreEq = coreRepEquiv(core);
 
   return (
     <Link
@@ -72,7 +76,7 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
           {VERDICT_TAG[coach.verdict]}
         </span>
         <span className="meta" style={{ fontSize: 11 }}>
-          오늘의 자극 점수
+          오늘의 자극
         </span>
       </div>
 
@@ -81,8 +85,9 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
           fontSize: 22,
           fontWeight: 800,
           letterSpacing: '-0.03em',
-          lineHeight: 1.25,
+          lineHeight: 1.3,
           color: 'var(--text)',
+          wordBreak: 'keep-all',
         }}
       >
         {coach.headline}
@@ -94,6 +99,7 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
           fontWeight: 600,
           color: 'var(--accent)',
           lineHeight: 1.4,
+          wordBreak: 'keep-all',
         }}
       >
         {coach.action}
@@ -106,14 +112,14 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
       <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
         <GoalBar
           label="하체"
-          score={lowerBody}
-          goal={LOWER_STIM_GOAL}
+          current={lowerEq}
+          goal={DAILY_LOWER_REPS}
           feel={stimulusLabel(lowerBody)}
         />
         <GoalBar
           label="코어"
-          score={core}
-          goal={CORE_STIM_GOAL}
+          current={coreEq}
+          goal={DAILY_CORE_REPS}
           feel={stimulusLabel(core)}
         />
       </div>
@@ -137,17 +143,17 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
 
 function GoalBar({
   label,
-  score,
+  current,
   goal,
   feel,
 }: {
   label: string;
-  score: number;
+  current: number;
   goal: number;
   feel: string;
 }) {
-  const pct = Math.min(100, Math.max(0, score));
-  const gap = Math.max(0, goal - score);
+  const pct = Math.min(100, Math.max(0, (current / goal) * 100));
+  const gap = Math.max(0, goal - current);
   return (
     <div>
       <div
@@ -156,19 +162,20 @@ function GoalBar({
           justifyContent: 'space-between',
           alignItems: 'baseline',
           marginBottom: 6,
+          gap: 8,
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
           {label}{' '}
           <span className="meta" style={{ fontWeight: 600 }}>
             {feel}
           </span>
         </span>
-        <span style={{ fontSize: 13, fontWeight: 800 }}>
-          {formatPts(score)}
+        <span style={{ fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}>
+          {formatRepShare(current)}
           <span className="meta" style={{ fontWeight: 600 }}>
             {' '}
-            / {formatPts(goal)}
+            / {formatRepShare(goal)}
           </span>
         </span>
       </div>
@@ -178,7 +185,6 @@ function GoalBar({
           borderRadius: 999,
           background: 'var(--surface-3)',
           overflow: 'hidden',
-          position: 'relative',
         }}
       >
         <div
@@ -186,23 +192,13 @@ function GoalBar({
             width: `${pct}%`,
             height: '100%',
             borderRadius: 999,
-            background: score >= goal ? 'var(--accent)' : '#FFD23F',
+            background: current >= goal ? 'var(--accent)' : '#FFD23F',
             transition: 'width 0.35s ease',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            left: `${goal}%`,
-            top: 0,
-            bottom: 0,
-            width: 2,
-            background: 'rgba(255,255,255,0.35)',
           }}
         />
       </div>
       <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-        {gap > 0 ? `${formatPts(goal)}까지 ${formatPts(gap)} 남음` : '자극 구간 이상'}
+        {gap > 0 ? `${formatRepShare(gap)} 남음` : '하루 자극 OK'}
       </div>
     </div>
   );

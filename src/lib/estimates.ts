@@ -116,34 +116,54 @@ export function stimulusLabel(score: number): string {
   return '짧음';
 }
 
-/** 하체/코어 하루 자극 점수 기준 (0~100). 스쿼트 ‘개수’와 다른 축. */
+/** 내부 계산용 자극 스케일 (UI에는 개수분으로만 표시) */
 export const LOWER_STIM_GOAL = 55;
 export const CORE_STIM_GOAL = 40;
 
-export function formatPts(n: number): string {
-  return `${Math.round(n)}점`;
-}
+/** 하루 하체·코어 ‘괜찮은 자극’을 스쿼트 개수로 환산한 기준 */
+export const DAILY_LOWER_REPS = 65;
+export const DAILY_CORE_REPS = 50;
 
 export function formatReps(n: number): string {
   return `${Math.round(n)}개`;
 }
 
-/** 하루/세션 자극 척도 안내 (동기부여용 · 의료 기준 아님) */
+/** 환산량 — “65개분”처럼 실제 카운트와 같은 ‘개’ 단위로 통일 */
+export function formatRepShare(n: number): string {
+  return `${Math.round(n)}개분`;
+}
+
+/** 자극 점수 → 하루 기준 대비 개수분 (사용자에게는 이 숫자만) */
+export function toRepEquiv(score: number, goalScore: number, goalReps: number): number {
+  if (goalScore <= 0) return 0;
+  return Math.max(0, Math.round((Math.max(0, score) / goalScore) * goalReps));
+}
+
+export function lowerRepEquiv(score: number): number {
+  return toRepEquiv(score, LOWER_STIM_GOAL, DAILY_LOWER_REPS);
+}
+
+export function coreRepEquiv(score: number): number {
+  return toRepEquiv(score, CORE_STIM_GOAL, DAILY_CORE_REPS);
+}
+
+/** @deprecated UI는 formatRepShare 사용. 공유 등 잔여 호출용 */
+export function formatPts(n: number): string {
+  return formatRepShare(toRepEquiv(n, LOWER_STIM_GOAL, DAILY_LOWER_REPS));
+}
+
 export const STIMULUS_GOAL_HINT =
-  '하체 55점·코어 40점은 자극 세기(0~100점)예요. 홈의 오늘 목표(예: 스쿼트 30개)와는 다른 숫자입니다.';
+  `하루 하체 자극은 스쿼트 약 ${DAILY_LOWER_REPS}개분이면 괜찮아요. 오늘 한 개수와 같은 ‘개’로 맞춰 둔 환산입니다.`;
 
 export const STIMULUS_VS_REPS_HINT =
-  '개수 = 스쿼트를 몇 번 했는지. 점수 = 하체·코어가 얼마나 세게 쓰였는지 (0~100점).';
+  `속도·자세가 반영된 환산이에요. 천천히 잘 앉으면 같은 개수라도 개수분이 조금 더 높게 나와요.`;
 
 export type StimulusVerdict = 'go' | 'push' | 'done' | 'rest';
 
 export type StimulusCoach = {
-  /** 큰 한 줄 — 홈에만 노출 */
   headline: string;
-  /** 행동 제안 한 줄 */
   action: string;
   verdict: StimulusVerdict;
-  /** 상세 페이지용 */
   meaningLower: string;
   meaningCore: string;
 };
@@ -156,15 +176,17 @@ export function kcalFeel(kcal: number): string {
   return '아직 거의 안 움직인 느낌';
 }
 
-/** Rough lower-body points ≈ 1.1 per rep (moderate tempo). Round to 5. */
-export function recommendExtraReps(lowerGap: number): number {
-  const rough = Math.ceil(Math.max(0, lowerGap) / 1.1);
+/** 하체 점수 갭 → 추가 스쿼트 개수 추천 (5개 단위) */
+export function recommendExtraReps(lowerGapScore: number): number {
+  const rough = Math.ceil(Math.max(0, lowerGapScore) / 1.1);
   return Math.max(10, Math.min(40, Math.ceil(rough / 5) * 5));
 }
 
-/** 자극 점수 → 짧은 코치 카드용 구조화 문구
- *  55점·40점 = 자극. N개 = 스쿼트 횟수. 단위를 항상 붙인다.
- */
+function remainingLowerReps(lowerBody: number): number {
+  return Math.max(0, DAILY_LOWER_REPS - lowerRepEquiv(lowerBody));
+}
+
+/** 코치 — UI·문구는 전부 ‘개 / 개분’. 내부만 점수. */
 export function buildStimulusCoach(input: {
   kcal: number;
   lowerBody: number;
@@ -172,10 +194,10 @@ export function buildStimulusCoach(input: {
   reps: number;
 }): StimulusCoach {
   const { lowerBody, core, reps } = input;
-  const meaningLower =
-    '하체 자극 점수(0~100점). 허벅지·엉덩이가 얼마나 쓰였는지예요. 하루 55점 이상이면 괜찮은 편.';
-  const meaningCore =
-    '코어 자극 점수(0~100점). 배·허리 버티기예요. 하루 40점 이상이면 OK. 스쿼트에선 하체보다 낮아요.';
+  const lowerEq = lowerRepEquiv(lowerBody);
+
+  const meaningLower = `허벅지·엉덩이 자극을 스쿼트 개수로 환산한 값이에요. 하루 약 ${DAILY_LOWER_REPS}개분이면 괜찮은 하체 자극입니다.`;
+  const meaningCore = `배·허리 버티기를 개수로 환산한 값이에요. 하루 약 ${DAILY_CORE_REPS}개분이면 OK. 스쿼트에선 하체보다 낮게 나와요.`;
 
   if (reps <= 0) {
     return {
@@ -199,7 +221,7 @@ export function buildStimulusCoach(input: {
 
   if (lowerBody >= LOWER_STIM_GOAL && core >= CORE_STIM_GOAL) {
     return {
-      headline: '하체·코어 자극 점수 도달',
+      headline: `하체 ${formatRepShare(DAILY_LOWER_REPS)} 자극 도달`,
       action: `더 하고 싶으면 스쿼트 ${formatReps(10)}~${formatReps(15)}만 추가`,
       verdict: 'done',
       meaningLower,
@@ -208,11 +230,11 @@ export function buildStimulusCoach(input: {
   }
 
   if (lowerBody >= 40 || reps >= 25) {
-    const gap = Math.max(5, LOWER_STIM_GOAL - lowerBody);
-    const extra = recommendExtraReps(gap);
+    const left = remainingLowerReps(lowerBody);
+    const extra = left > 0 ? Math.max(10, Math.min(40, Math.ceil(left / 5) * 5)) : 10;
     return {
       headline: '하체 자극이 거의 찼어요',
-      action: `하체 ${formatPts(LOWER_STIM_GOAL)}까지 · 스쿼트 ${formatReps(extra)}만 더`,
+      action: `${formatRepShare(DAILY_LOWER_REPS)}까지 · 스쿼트 ${formatReps(extra)}만 더`,
       verdict: 'push',
       meaningLower,
       meaningCore,
@@ -231,10 +253,14 @@ export function buildStimulusCoach(input: {
     };
   }
 
-  const extra = recommendExtraReps(Math.max(10, LOWER_STIM_GOAL - lowerBody));
+  const left = remainingLowerReps(lowerBody);
+  const extra =
+    left > 0
+      ? Math.max(10, Math.min(40, Math.ceil(left / 5) * 5))
+      : recommendExtraReps(Math.max(10, LOWER_STIM_GOAL - lowerBody));
   return {
     headline: '하체 자극이 아직 가벼워요',
-    action: `하체 ${formatPts(LOWER_STIM_GOAL)}를 향해 · 스쿼트 ${formatReps(extra)} 추천`,
+    action: `하루 ${formatRepShare(DAILY_LOWER_REPS)}을 향해 · 지금 ${formatRepShare(lowerEq)} · ${formatReps(extra)} 추천`,
     verdict: 'go',
     meaningLower,
     meaningCore,

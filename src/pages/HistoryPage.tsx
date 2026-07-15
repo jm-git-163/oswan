@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { backendStatus, fetchMyWeekStats, type DayStat } from '../lib/api';
-import { estimateSession, estimateSessionsTotal, buildStimulusCoach, stimulusLabel } from '../lib/estimates';
+import { estimateSession, estimateSessionsTotal, buildStimulusCoach, stimulusLabel, lowerRepEquiv, coreRepEquiv, DAILY_LOWER_REPS, DAILY_CORE_REPS, formatRepShare } from '../lib/estimates';
 import { last7Days, listSessions } from '../lib/storage';
 import { useAppStore } from '../store';
 
@@ -110,7 +110,7 @@ export function HistoryPage() {
               {stimulusLabel(weekEst.lowerBody)}
             </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              하체 · {weekEst.lowerBody}점/55점
+              하체 · {formatRepShare(lowerRepEquiv(weekEst.lowerBody))}/{formatRepShare(DAILY_LOWER_REPS)}
             </div>
           </div>
           <div>
@@ -118,12 +118,12 @@ export function HistoryPage() {
               {stimulusLabel(weekEst.core)}
             </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              코어 · {weekEst.core}점/40점
+              코어 · {formatRepShare(coreRepEquiv(weekEst.core))}/{formatRepShare(DAILY_CORE_REPS)}
             </div>
           </div>
         </div>
         <p className="meta" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.4 }}>
-          칼로리는 합산, 하체·코어는 세션 평균 자극 점수(점). 기준: 하체 55점+ · 코어 40점+ · 막대는 스쿼트 개수
+          칼로리는 합산, 하체·코어는 세션 평균 자극(개분). 하루 하체 {formatRepShare(DAILY_LOWER_REPS)} · 막대는 실제 스쿼트 개수
         </p>
       </div>
 
@@ -178,7 +178,7 @@ export function HistoryPage() {
                       core: est.core,
                       reps: s.reps,
                     });
-                    return `${c.headline} · 하체 ${est.lowerBody}점/55점 · 코어 ${est.core}점/40점`;
+                    return `${c.headline} · 하체 ${formatRepShare(lowerRepEquiv(est.lowerBody))}/${formatRepShare(DAILY_LOWER_REPS)} · 코어 ${formatRepShare(coreRepEquiv(est.core))}/${formatRepShare(DAILY_CORE_REPS)}`;
                   })()}
                 </div>
               </div>

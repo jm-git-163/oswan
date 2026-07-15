@@ -1,9 +1,11 @@
 import {
-  CORE_STIM_GOAL,
-  LOWER_STIM_GOAL,
+  DAILY_CORE_REPS,
+  DAILY_LOWER_REPS,
   estimateSession,
   buildStimulusCoach,
-  formatPts,
+  coreRepEquiv,
+  formatRepShare,
+  lowerRepEquiv,
   stimulusLabel,
   type SessionEstimates as Estimates,
 } from '../lib/estimates';
@@ -14,7 +16,18 @@ type Props = {
   compact?: boolean;
 };
 
-function Bar({ label, score, hint }: { label: string; score: number; hint: string }) {
+function Bar({
+  label,
+  current,
+  goal,
+  hint,
+}: {
+  label: string;
+  current: number;
+  goal: number;
+  hint: string;
+}) {
+  const pct = Math.min(100, Math.max(0, (current / goal) * 100));
   return (
     <div>
       <div
@@ -23,11 +36,12 @@ function Bar({ label, score, hint }: { label: string; score: number; hint: strin
           justifyContent: 'space-between',
           alignItems: 'baseline',
           marginBottom: 6,
+          gap: 8,
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600 }}>{label}</span>
-        <span className="meta" style={{ fontSize: 12 }}>
-          {stimulusLabel(score)} · {formatPts(score)}
+        <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</span>
+        <span className="meta" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+          {formatRepShare(current)} / {formatRepShare(goal)}
         </span>
       </div>
       <div
@@ -40,11 +54,12 @@ function Bar({ label, score, hint }: { label: string; score: number; hint: strin
       >
         <div
           style={{
-            width: `${score}%`,
+            width: `${pct}%`,
             height: '100%',
             borderRadius: 999,
-            background: 'var(--accent)',
+            background: current >= goal ? 'var(--accent)' : 'var(--accent)',
             transition: 'width 0.4s ease',
+            opacity: current >= goal ? 1 : 0.85,
           }}
         />
       </div>
@@ -57,12 +72,14 @@ function Bar({ label, score, hint }: { label: string; score: number; hint: strin
 
 export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
   const e: Estimates = estimateSession(reps, durationMs);
+  const lowerEq = lowerRepEquiv(e.lowerBody);
+  const coreEq = coreRepEquiv(e.core);
 
   if (compact) {
     return (
-      <div className="meta" style={{ fontSize: 12, marginTop: 6 }}>
-        약 {e.kcal} kcal · 하체 {stimulusLabel(e.lowerBody)} {formatPts(e.lowerBody)} · 코어{' '}
-        {stimulusLabel(e.core)} {formatPts(e.core)}
+      <div className="meta" style={{ fontSize: 12, marginTop: 6, wordBreak: 'keep-all' }}>
+        약 {e.kcal} kcal · 하체 {stimulusLabel(e.lowerBody)} {formatRepShare(lowerEq)} · 코어{' '}
+        {stimulusLabel(e.core)} {formatRepShare(coreEq)}
       </div>
     );
   }
@@ -75,7 +92,7 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
         borderTop: '1px solid rgba(200,245,74,0.12)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 12 }}>
         <div>
           <div className="meta" style={{ letterSpacing: '0.06em', fontSize: 11 }}>
             추정 소모
@@ -89,17 +106,24 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
           {e.weightKg}kg 기준
           {e.usedDefaultWeight ? ' (기본)' : ''}
           <br />
-          자극: 하체 {formatPts(LOWER_STIM_GOAL)}+ · 코어 {formatPts(CORE_STIM_GOAL)}+
-          <br />
-          (스쿼트 개수와 별개)
+          하루 하체 {formatRepShare(DAILY_LOWER_REPS)}
         </div>
       </div>
 
       <div style={{ display: 'grid', gap: 14, marginTop: 16 }}>
-        <Bar label="하체 자극" score={e.lowerBody} hint="허벅지·엉덩이 · 0~100점 (개수 아님)" />
-        <Bar label="코어 자극" score={e.core} hint="배·허리 버티기 · 보통 하체보다 낮음" />
+        <Bar
+          label="하체 자극"
+          current={lowerEq}
+          goal={DAILY_LOWER_REPS}
+          hint={`허벅지·엉덩이 · 하루 ${formatRepShare(DAILY_LOWER_REPS)}이면 OK`}
+        />
+        <Bar
+          label="코어 자극"
+          current={coreEq}
+          goal={DAILY_CORE_REPS}
+          hint={`배·허리 · 하루 ${formatRepShare(DAILY_CORE_REPS)}이면 OK`}
+        />
       </div>
-
 
       <p className="meta" style={{ fontSize: 11, marginTop: 14, lineHeight: 1.45 }}>
         {(() => {

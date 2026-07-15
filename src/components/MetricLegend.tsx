@@ -1,16 +1,14 @@
-/** 스쿼트 개수(개) vs 자극 점수(점) — 단위가 한 덩어리로 보이게 */
+/** 자극 = 하루 개수분 환산 안내 (점수 개념 없음) */
 
-import type { CSSProperties } from 'react';
+import {
+  DAILY_CORE_REPS,
+  DAILY_LOWER_REPS,
+  formatRepShare,
+} from '../lib/estimates';
 
 type Props = {
   compact?: boolean;
-  /** 오늘 개수 — compact일 때 옆에 숫자 표시 */
   reps?: number;
-};
-
-const keepWord: CSSProperties = {
-  wordBreak: 'keep-all',
-  overflowWrap: 'break-word',
 };
 
 export function MetricLegend({ compact, reps }: Props) {
@@ -32,7 +30,6 @@ export function MetricLegend({ compact, reps }: Props) {
               padding: '4px 10px',
               borderRadius: 999,
               background: 'rgba(255,255,255,0.08)',
-              color: 'var(--text)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -50,7 +47,7 @@ export function MetricLegend({ compact, reps }: Props) {
             whiteSpace: 'nowrap',
           }}
         >
-          아래는 자극 점수
+          하체 목표 {formatRepShare(DAILY_LOWER_REPS)}
         </span>
       </div>
     );
@@ -59,79 +56,20 @@ export function MetricLegend({ compact, reps }: Props) {
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 8,
-        ...keepWord,
+        padding: '14px 16px',
+        borderRadius: 16,
+        border: '1px solid rgba(200,245,74,0.22)',
+        background: 'rgba(200,245,74,0.06)',
+        wordBreak: 'keep-all',
       }}
     >
-      <LegendTile
-        badge="개수"
-        example="예: 30개"
-        body="스쿼트를 몇 번 했는지"
-        tone="reps"
-      />
-      <LegendTile
-        badge="점수"
-        example="예: 55점"
-        body="하체·코어 세기 0~100"
-        tone="score"
-      />
-    </div>
-  );
-}
-
-function LegendTile({
-  badge,
-  example,
-  body,
-  tone,
-}: {
-  badge: string;
-  example: string;
-  body: string;
-  tone: 'reps' | 'score';
-}) {
-  const accent = tone === 'score';
-  return (
-    <div
-      style={{
-        padding: '14px 12px',
-        borderRadius: 14,
-        border: accent
-          ? '1px solid rgba(200,245,74,0.28)'
-          : '1px solid rgba(255,255,255,0.1)',
-        background: accent ? 'rgba(200,245,74,0.06)' : 'rgba(255,255,255,0.04)',
-        minWidth: 0,
-        ...keepWord,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 900,
-          letterSpacing: '-0.02em',
-          color: accent ? 'var(--accent)' : 'var(--text)',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {badge}
+      <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.4 }}>
+        하루 하체 자극 ≈ 스쿼트 {formatRepShare(DAILY_LOWER_REPS)}
       </div>
-      <div
-        className="meta"
-        style={{
-          fontSize: 12,
-          fontWeight: 700,
-          marginTop: 6,
-          color: 'var(--text-secondary)',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {example}
-      </div>
-      <div className="meta" style={{ fontSize: 11, lineHeight: 1.45, marginTop: 8, ...keepWord }}>
-        {body}
-      </div>
+      <p className="meta" style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5 }}>
+        자극도 전부 ‘개’로 맞춰 봤어요. 코어는 약 {formatRepShare(DAILY_CORE_REPS)}이면 OK.
+        천천히 깊게 앉으면 같은 횟수라도 개수분이 조금 더 높게 나와요.
+      </p>
     </div>
   );
 }
