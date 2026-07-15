@@ -121,7 +121,7 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
         }}
       >
         <span>약 {kcal} kcal · 참고용</span>
-        <span style={{ color: 'var(--accent)', fontWeight: 700 }}>의미 보기 →</span>
+        <span style={{ color: 'var(--accent)', fontWeight: 700 }}>쉬운 설명 →</span>
       </div>
     </Link>
   );
