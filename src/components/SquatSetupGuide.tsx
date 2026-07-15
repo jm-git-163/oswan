@@ -66,7 +66,7 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
         <text x="40" y="194" fill="#6e6e6e" fontSize="10" fontFamily="sans-serif">
           아직 밖
         </text>
-        <ellipse cx="99" cy="232" rx="36" ry="26" fill="none" stroke="#6e6e6e" strokeWidth="2.5" strokeDasharray="5 4" />
+        <ellipse cx="99" cy="232" rx="22" ry="34" fill="none" stroke="#6e6e6e" strokeWidth="2.5" strokeDasharray="5 4" />
         <circle cx="52" cy="222" r="6" fill="#ff6b6b" />
         <text x="40" y="268" fill="#ff8a8a" fontSize="10" fontFamily="sans-serif">
           대기 중…
@@ -76,7 +76,7 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
         <text x="202" y="194" fill="#C8F54A" fontSize="10" fontFamily="sans-serif">
           원 안 OK
         </text>
-        <ellipse cx="261" cy="232" rx="36" ry="26" fill="none" stroke="#C8F54A" strokeWidth="3" />
+        <ellipse cx="261" cy="232" rx="22" ry="34" fill="none" stroke="#C8F54A" strokeWidth="3" />
         <circle cx="261" cy="232" r="7" fill="#C8F54A" />
         <text x="214" y="268" fill="#C8F54A" fontSize="10" fontWeight="700" fontFamily="sans-serif">
           ▶ 카운트 시작!
