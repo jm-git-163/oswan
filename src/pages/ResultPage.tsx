@@ -121,7 +121,7 @@ export function ResultPage() {
 
         <SessionEstimatesCard reps={result.reps} durationMs={result.durationMs} />
         <div className="meta" style={{ marginTop: 14 }}>
-          목표 개수 채우면 오늘 스쿼트 완료.
+          이번에 할 개수를 채우면 오스완.
         </div>
       </div>
 

@@ -497,7 +497,7 @@ export function SessionPage() {
               className="meta"
               style={{ background: 'rgba(0,0,0,0.55)', padding: '8px 12px', borderRadius: 999 }}
             >
-              목표 {target}
+              이번 {target}개
             </div>
           </div>
 

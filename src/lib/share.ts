@@ -82,7 +82,7 @@ export async function renderChallengeCardBlob(challenge: Challenge): Promise<Blo
 
   ctx.fillStyle = '#A1A1A1';
   ctx.font = '600 36px Pretendard, sans-serif';
-  ctx.fillText('목표 개수 · 클리어하면 오스완', w / 2, 870);
+  ctx.fillText('도전 개수 · 클리어하면 오스완', w / 2, 870);
 
   roundRect(ctx, 180, 980, w - 360, 100, 28, '#1E1E1E');
   ctx.fillStyle = '#C8F54A';

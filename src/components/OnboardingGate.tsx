@@ -20,8 +20,8 @@ function CloseButton({ onClick }: { onClick: () => void }) {
 
 const guideSteps = [
   {
-    title: '오늘 목표를 정해요',
-    body: '개수만 고르면 준비 끝. 채우면 오스완.',
+    title: '이번에 할 개수를 정해요',
+    body: '바로 시작할 스쿼트 개수만 고르면 준비 끝. 채우면 오스완.',
   },
   {
     title: '점이 원 안 → 앉아 일어서면 +1',
@@ -33,7 +33,7 @@ const guideSteps = [
   },
   {
     title: '친구에게 도전',
-    body: '같은 목표로 도전장을 보내면 기록이 따로 쌓여요.',
+    body: '같은 개수로 도전장을 보내면 기록이 따로 쌓여요.',
   },
 ];
 
@@ -142,7 +142,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
                   닉네임으로 시작
                 </h1>
                 <p className="meta" style={{ fontSize: 14, margin: '8px 0 20px', lineHeight: 1.5 }}>
-                  목표 개수 채우면 오스완.
+                  이번에 할 개수 채우면 오스완.
                 </p>
               </>
             )}

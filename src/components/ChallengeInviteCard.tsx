@@ -39,7 +39,7 @@ export function ChallengeInviteCard({ challenge, remaining }: Props) {
           borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: 15 }}>친구에게 목표 개수 도전</div>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>친구에게 개수 도전</div>
         <div
           style={{
             fontSize: 11,
@@ -63,7 +63,7 @@ export function ChallengeInviteCard({ challenge, remaining }: Props) {
           {challenge.targetReps}
         </div>
         <div className="meta" style={{ marginTop: 10, fontSize: 14 }}>
-          목표 개수 · 채우면 오스완
+          도전 개수 · 채우면 오스완
           {remaining ? ` · ${remaining}` : ''}
         </div>
 

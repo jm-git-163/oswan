@@ -34,7 +34,7 @@ export function ChallengesPage() {
         도전
       </h1>
       <p className="meta" style={{ marginBottom: 20 }}>
-        같은 목표 개수로 친구에게 도전장을 보내요. 클리어하면 오스완.
+        같은 도전 개수로 친구에게 도전장을 보내요. 클리어하면 오스완.
       </p>
 
       <button className="cta-primary" style={{ marginBottom: 20 }} onClick={createAndShare}>

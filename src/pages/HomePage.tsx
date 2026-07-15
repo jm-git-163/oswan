@@ -51,7 +51,7 @@ export function HomePage() {
           label="오늘 스쿼트"
           hint={
             <div style={{ marginTop: 10, color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
-              {streak > 0 ? `▸ ${streak}일 연속 오스완` : '▸ 오늘 목표 개수를 채우면 오스완'}
+              {streak > 0 ? `▸ ${streak}일 연속 오스완` : '▸ 이번 개수를 채우면 오스완'}
             </div>
           }
         />
@@ -65,11 +65,11 @@ export function HomePage() {
       />
 
       <p className="meta" style={{ fontSize: 15, margin: '8px 0 18px', lineHeight: 1.5 }}>
-        목표 개수 채우면 오스완. 자극도 아래 카드에서 개수로 맞춰 봐요.
+        이번에 할 개수를 채우면 오스완. 자극은 아래 카드에서 맞춰 봐요.
       </p>
 
       <SurfaceCard className="stack-sm" style={{ marginBottom: 14 }}>
-        <div className="meta">오늘 목표 · 개수</div>
+        <div className="meta">이번에 할 개수</div>
         <div className="row">
           <button
             type="button"

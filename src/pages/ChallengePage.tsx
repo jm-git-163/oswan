@@ -190,7 +190,7 @@ export function ChallengePage() {
       </h1>
       <p className="meta" style={{ fontSize: 15, lineHeight: 1.5 }}>
         {challenge.fromNickname}님이 <strong style={{ color: '#fff' }}>{challenge.targetReps}개</strong>
-        에 도전합니다. 목표 채우면 오스완.
+        에 도전합니다. 도전 개수 채우면 오스완.
       </p>
 
       <ChallengeInviteCard challenge={challenge} remaining={remaining} />
