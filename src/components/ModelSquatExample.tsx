@@ -28,8 +28,8 @@ export function ModelSquatExample({ variant = 'compact' }: Props) {
       >
         <span>
           <span style={{ fontWeight: 700 }}>모범 스쿼트 예시</span>
-          <span className="meta" style={{ display: 'block', marginTop: 2, fontSize: 12 }}>
-            {open ? '접기' : '궁금하면 눌러서 보기'}
+          <span className="meta" style={{ display: 'block', marginTop: 2, fontSize: 12, wordBreak: 'keep-all' }}>
+            {open ? '접기' : '안전하고 효과적인 스쿼트를 위해 시청을 권장해요'}
           </span>
         </span>
         <span style={{ color: 'var(--accent)', fontWeight: 800, fontSize: 18 }}>{open ? '−' : '+'}</span>
