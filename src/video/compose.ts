@@ -231,6 +231,46 @@ function drawBg(ctx: CanvasRenderingContext2D, template: PrideTemplate) {
   ctx.fillRect(0, 0, W, H);
 }
 
+function drawBigRepCount(
+  ctx: CanvasRenderingContext2D,
+  value: number | string,
+  x: number,
+  y: number,
+  accent: string,
+  opts?: { size?: number; label?: string },
+) {
+  const size = opts?.size ?? 96;
+  const text = String(value);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // plate behind number for contrast
+  const tw = Math.max(160, text.length * size * 0.62);
+  const th = size + (opts?.label ? 52 : 28);
+  rr(ctx, x - tw / 2, y - th / 2, tw, th, 22);
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.fill();
+  ctx.strokeStyle = hexAlpha(accent, 0.85);
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // outline then fill — readable on any footage
+  ctx.font = `900 ${size}px Pretendard, sans-serif`;
+  ctx.lineWidth = Math.max(6, size * 0.08);
+  ctx.strokeStyle = '#0A0A0A';
+  ctx.strokeText(text, x, opts?.label ? y - 12 : y);
+  ctx.fillStyle = accent;
+  ctx.fillText(text, x, opts?.label ? y - 12 : y);
+
+  if (opts?.label) {
+    ctx.font = '800 22px Pretendard, sans-serif';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(opts.label, x, y + size * 0.38);
+  }
+  ctx.restore();
+}
+
 function drawHashtags(ctx: CanvasRenderingContext2D, y = H - 36) {
   ctx.fillStyle = '#6E6E6E';
   ctx.font = '600 14px Pretendard, sans-serif';
@@ -345,12 +385,10 @@ function drawFramed(
   }
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = '800 72px Pretendard, sans-serif';
-  ctx.fillText(`${shown}`, W / 2, top + camH + 88);
-  ctx.fillStyle = accent;
-  ctx.font = '700 22px Pretendard, sans-serif';
-  ctx.fillText(`/ ${meta.targetReps} · 목표`, W / 2, top + camH + 124);
+  drawBigRepCount(ctx, shown, W / 2, top + camH + 100, accent, {
+    size: 88,
+    label: `/ ${meta.targetReps} · 클리어 ${meta.cleared ? '✓' : '진행'}`,
+  });
 
   drawProgressRing(ctx, padX + 40, top + 40, progress, accent);
   drawEndBadge(ctx, meta, ms, totalMs, accent);
@@ -433,15 +471,12 @@ function drawFullbleed(
 
   // bottom score strip
   ctx.fillStyle = film ? 'rgba(0,0,0,0.0)' : hexAlpha(accent, 0.12 + beatPulse * 0.1);
-  rr(ctx, 28, H - 210, W - 56, 100, 20);
+  rr(ctx, 28, H - 230, W - 56, 120, 20);
   ctx.fill();
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = '900 64px Pretendard, sans-serif';
-  ctx.fillText(String(shown), W / 2, H - 148);
-  ctx.fillStyle = accent;
-  ctx.font = '700 20px Pretendard, sans-serif';
-  ctx.fillText(`${meta.cleared ? 'CLEARED' : 'IN PROGRESS'}  ·  /${meta.targetReps}`, W / 2, H - 118);
+  drawBigRepCount(ctx, shown, W / 2, H - 170, accent, {
+    size: 92,
+    label: `${meta.cleared ? 'CLEARED' : 'IN PROGRESS'}  ·  목표 ${meta.targetReps}`,
+  });
 
   // progress bar
   ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -525,17 +560,11 @@ function drawStamp(
 
   // bottom ticker
   ctx.fillStyle = accent;
-  ctx.fillRect(0, H - 150, W, 150);
-  ctx.fillStyle = '#0A0A0A';
-  ctx.font = '900 56px Pretendard, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText(`${shown}`, 36, H - 78);
-  ctx.font = '800 22px Pretendard, sans-serif';
-  ctx.fillText(`/ ${meta.targetReps} 목표`, 36, H - 42);
-  ctx.textAlign = 'right';
-  ctx.fillStyle = accent2;
-  ctx.font = '800 20px Pretendard, sans-serif';
-  ctx.fillText(Math.round(progress * 100) + '%', W - 36, H - 60);
+  ctx.fillRect(0, H - 170, W, 170);
+  drawBigRepCount(ctx, shown, W / 2, H - 95, '#0A0A0A', {
+    size: 100,
+    label: `목표 ${meta.targetReps} · ${Math.round(progress * 100)}%`,
+  });
 
   drawEndBadge(ctx, meta, ms, totalMs, accent2);
 }
@@ -595,12 +624,10 @@ function drawScoreboard(
   ctx.fillText(meta.cleared ? '미션 클리어' : '진행 중', 44, 140);
 
   ctx.textAlign = 'right';
-  ctx.fillStyle = accent;
-  ctx.font = '900 64px Pretendard, sans-serif';
-  ctx.fillText(String(shown), W - 44, 120);
-  ctx.fillStyle = accent2;
-  ctx.font = '700 18px Pretendard, sans-serif';
-  ctx.fillText(`GOAL ${meta.targetReps}`, W - 44, 150);
+  drawBigRepCount(ctx, shown, W - 150, 100, accent, {
+    size: 72,
+    label: `GOAL ${meta.targetReps}`,
+  });
 
   // lower stats row
   const rowY = camTop + camH + 36;

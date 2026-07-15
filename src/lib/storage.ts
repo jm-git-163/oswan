@@ -334,25 +334,25 @@ export async function createChallengeAndSync(input: {
   return c;
 }
 
-/** Clean invite URL — no base64 payload (looks bad in Kakao). */
+/** Clean invite URL — keep query minimal for messengers. */
 export function challengeShareUrl(challenge: Challenge): string {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const url = new URL(`${window.location.origin}${base}/c/${challenge.id}`);
-  url.searchParams.set('n', challenge.fromNickname);
+  // Short seeds only — enough to open if sync lags
+  url.searchParams.set('n', challenge.fromNickname.slice(0, 12));
   url.searchParams.set('r', String(challenge.targetReps));
   url.searchParams.set('f', challenge.fromSoftUserId);
-  if (challenge.deadlineAt) {
-    url.searchParams.set('dl', challenge.deadlineAt);
-  }
-  if (challenge.stakeLabel) {
-    url.searchParams.set('s', challenge.stakeLabel);
-  }
   return url.toString();
 }
 
-/** Display-friendly short form for UI (not for sharing raw). */
+/** UI label — never print the full URL with query junk. */
 export function challengeShareUrlLabel(challenge: Challenge): string {
-  return `oswan.vercel.app/c/${challenge.id.slice(0, 8)}…`;
+  try {
+    const host = window.location.host.replace(/^www\./, '');
+    return `${host}/c/${challenge.id.slice(0, 8)}`;
+  } catch {
+    return `oswan…/c/${challenge.id.slice(0, 8)}`;
+  }
 }
 
 /** Rebuild invite from compact query when recipient has no local/remote copy. */

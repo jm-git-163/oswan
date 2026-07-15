@@ -2,12 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BrandHeader } from '../components/BrandMark';
 import { ModelSquatExample } from '../components/ModelSquatExample';
-import { ChallengeStakePicker } from '../components/ChallengeStakePicker';
 import { ShareSheet } from '../components/ShareSheet';
 import { TodayEstimatesCard } from '../components/TodayEstimatesCard';
 import { HeroStat, SurfaceCard } from '../components/ui';
 import { useHomeStats } from '../hooks/useHomeStats';
-import { stakeLabelFromId, type ChallengeStakeId } from '../lib/challengeStakes';
 import { createChallengeAndSync } from '../lib/storage';
 import { getLastTarget, setLastTarget } from '../lib/sessionTarget';
 import { useAppStore } from '../store';
@@ -23,7 +21,6 @@ export function HomePage() {
   );
   const [sheetChallenge, setSheetChallenge] = useState<Challenge | null>(null);
   const [sharing, setSharing] = useState(false);
-  const [stakeId, setStakeId] = useState<ChallengeStakeId>('coffee');
   const { reps, streak, todayEst, active } = useHomeStats(user, location.key);
 
   useEffect(() => {
@@ -37,7 +34,6 @@ export function HomePage() {
         fromSoftUserId: user.id,
         fromNickname: user.nickname,
         targetReps: target,
-        stakeLabel: stakeLabelFromId(stakeId),
       });
       setSharing(false);
       setSheetChallenge(c);
@@ -115,7 +111,6 @@ export function HomePage() {
       )}
 
       <div className="stack-sm" style={{ marginTop: 12 }}>
-        <ChallengeStakePicker value={stakeId} onChange={setStakeId} />
         <button type="button" className="cta-secondary" disabled={sharing} onClick={sendChallenge}>
           {sharing ? '도전장 준비 중…' : '친구에게 도전장'}
         </button>

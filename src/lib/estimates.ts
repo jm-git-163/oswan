@@ -141,6 +141,12 @@ export function kcalFeel(kcal: number): string {
   return '아직 거의 안 움직인 느낌';
 }
 
+/** Rough lower-body points ≈ 1.1 per rep (moderate tempo). Round to 5. */
+export function recommendExtraReps(lowerGap: number): number {
+  const rough = Math.ceil(Math.max(0, lowerGap) / 1.1);
+  return Math.max(10, Math.min(40, Math.ceil(rough / 5) * 5));
+}
+
 /** 자극 점수 → 짧은 코치 카드용 구조화 문구 */
 export function buildStimulusCoach(input: {
   kcal: number;
@@ -167,7 +173,7 @@ export function buildStimulusCoach(input: {
   if (lowerBody >= 80 || (lowerBody >= 70 && core >= 55)) {
     return {
       headline: '충분히 잘했어요',
-      action: '오늘은 여기까지 · 내일 같은 자극이면 OK',
+      action: '오늘은 여기까지 · 내일도 비슷한 개수면 OK',
       verdict: 'rest',
       meaningLower,
       meaningCore,
@@ -177,7 +183,7 @@ export function buildStimulusCoach(input: {
   if (lowerBody >= 55 && core >= 40) {
     return {
       headline: '오늘 목표 구간 도달',
-      action: '추가 세트는 선택 · 폼만 지키면 됩니다',
+      action: '더 하고 싶으면 10~15개만 추가 · 폼 우선',
       verdict: 'done',
       meaningLower,
       meaningCore,
@@ -186,9 +192,10 @@ export function buildStimulusCoach(input: {
 
   if (lowerBody >= 40 || reps >= 25) {
     const gap = Math.max(5, 55 - lowerBody);
+    const extra = recommendExtraReps(gap);
     return {
       headline: '거의 다 왔어요',
-      action: `하체 ${gap}점만 더 · 짧은 세트 한 번이면 충분`,
+      action: `목표까지 스쿼트 ${extra}개만 더 하면 충분해요`,
       verdict: 'push',
       meaningLower,
       meaningCore,
@@ -196,18 +203,20 @@ export function buildStimulusCoach(input: {
   }
 
   if (reps < 20) {
+    const need = Math.max(20 - reps, 15);
     return {
       headline: '워밍업 수준이에요',
-      action: '스쿼트 좀 더 해볼까요? 20~30개 추천',
+      action: `이어서 ${need}개만 더 채워 보세요 (총 20~30개 목표)`,
       verdict: 'go',
       meaningLower,
       meaningCore,
     };
   }
 
+  const extra = recommendExtraReps(Math.max(10, 55 - lowerBody));
   return {
     headline: '자극이 아직 가벼운 편',
-    action: '개수나 템포를 조금 올려 보세요',
+    action: `한 세트 더 · ${extra}개 추천`,
     verdict: 'go',
     meaningLower,
     meaningCore,

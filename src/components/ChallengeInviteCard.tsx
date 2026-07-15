@@ -67,24 +67,6 @@ export function ChallengeInviteCard({ challenge, remaining }: Props) {
           {remaining ? ` · ${remaining}` : ''}
         </div>
 
-        {challenge.stakeLabel && (
-          <div
-            style={{
-              marginTop: 16,
-              display: 'inline-block',
-              padding: '10px 16px',
-              borderRadius: 14,
-              background: 'rgba(200,245,74,0.12)',
-              border: '1px solid rgba(200,245,74,0.35)',
-              color: 'var(--accent)',
-              fontWeight: 800,
-              fontSize: 14,
-            }}
-          >
-            걸기 · {challenge.stakeLabel}
-          </div>
-        )}
-
         <div
           style={{
             marginTop: 22,
@@ -117,8 +99,7 @@ export function ChallengeInviteCard({ challenge, remaining }: Props) {
           textAlign: 'center',
         }}
       >
-        규칙 {challenge.ruleVersion} · 갯수 달성
-        {challenge.stakeLabel ? ' · 명예 걸기' : ''} · #오스완
+        규칙 {challenge.ruleVersion} · 갯수 달성 · #오스완
       </div>
     </div>
   );

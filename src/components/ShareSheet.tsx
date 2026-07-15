@@ -7,7 +7,7 @@ import {
   openInExternalBrowser,
 } from '../lib/browser';
 import type { Challenge } from '../lib/types';
-import { challengeShareUrl } from '../lib/storage';
+import { challengeShareUrl, challengeShareUrlLabel } from '../lib/storage';
 import {
   canNativeShare,
   challengeShareCaption,
@@ -220,8 +220,11 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
               )
             }
           >
-            링크 복사 (붙여넣기용)
+            링크 복사 (짧음 · 붙여넣기용)
           </button>
+          <p className="meta" style={{ textAlign: 'center', fontSize: 11, opacity: 0.7 }}>
+            {challengeShareUrlLabel(challenge)}
+          </p>
 
           {NATIVE_APP.available ? (
             <a

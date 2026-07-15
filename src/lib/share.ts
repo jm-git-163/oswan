@@ -10,8 +10,7 @@ function isUserCancel(err: unknown) {
 
 /** Minimal caption — never include the raw URL (messengers show it under OG card). */
 export function challengeShareCaption(challenge: Challenge) {
-  const stake = challenge.stakeLabel ? ` · ${challenge.stakeLabel}` : '';
-  return `🥊 ${challenge.fromNickname} · ${challenge.targetReps}개 도전${stake} · 오스완`;
+  return `🥊 ${challenge.fromNickname}님이 ${challenge.targetReps}개 도전장 · 오스완`;
 }
 
 /** SMS / clipboard paste when OG share isn't available — URL once at the end. */
@@ -82,34 +81,16 @@ export async function renderChallengeCardBlob(challenge: Challenge): Promise<Blo
 
   ctx.fillStyle = '#A1A1A1';
   ctx.font = '600 36px Pretendard, sans-serif';
-  ctx.fillText('목표 개수 · 클리어하면 오스완', w / 2, 860);
+  ctx.fillText('목표 개수 · 클리어하면 오스완', w / 2, 870);
 
-  if (challenge.stakeLabel) {
-    roundRect(ctx, 140, 900, w - 280, 72, 22, '#1E1E1E');
-    ctx.fillStyle = '#C8F54A';
-    ctx.font = '700 30px Pretendard, sans-serif';
-    ctx.fillText(challenge.stakeLabel, w / 2, 948);
-  }
-
-  roundRect(ctx, 180, 1000, w - 360, 90, 28, '#1E1E1E');
+  roundRect(ctx, 180, 980, w - 360, 100, 28, '#1E1E1E');
   ctx.fillStyle = '#C8F54A';
-  ctx.font = '700 32px Pretendard, sans-serif';
-  ctx.fillText('너도 오스완 할 수 있어?', w / 2, 1058);
+  ctx.font = '700 34px Pretendard, sans-serif';
+  ctx.fillText('너도 오스완 할 수 있어?', w / 2, 1044);
 
   ctx.fillStyle = '#6E6E6E';
   ctx.font = '500 22px Pretendard, sans-serif';
-  ctx.fillText('링크를 눌러 Chrome에서 도전 수락', w / 2, 1155);
-
-  try {
-    const shareUrl = challengeShareUrl(challenge);
-    // Show host + short id only on the card — not the full query string
-    const pretty = shareUrl.replace(/^https?:\/\//, '').split('?')[0] ?? shareUrl;
-    ctx.fillStyle = '#C8F54A';
-    ctx.font = '600 22px Pretendard, sans-serif';
-    ctx.fillText(pretty, w / 2, 1195);
-  } catch {
-    /* */
-  }
+  ctx.fillText('카드를 눌러 도전 수락', w / 2, 1160);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
