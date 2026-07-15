@@ -171,11 +171,6 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
           </div>
         </button>
 
-        <p className="meta" style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
-          카톡·메신저에는 <strong style={{ color: 'var(--accent)' }}>링크 주소 대신 썸네일 카드</strong>로
-          보여요. 상대가 카드를 누르면 도전으로 연결됩니다.
-        </p>
-
         {status && (
           <div
             className="card"
