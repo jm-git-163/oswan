@@ -47,10 +47,11 @@ export function HomePage() {
       <div style={{ marginTop: 36, marginBottom: 8 }}>
         <HeroStat
           value={reps}
-          label="오늘 개수"
+          unit="개"
+          label="오늘 스쿼트"
           hint={
             <div style={{ marginTop: 10, color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
-              {streak > 0 ? `▸ ${streak}일 연속 오스완` : '▸ 오늘 목표를 채우면 오스완'}
+              {streak > 0 ? `▸ ${streak}일 연속 오스완` : '▸ 오늘 목표 개수를 채우면 오스완'}
             </div>
           }
         />
@@ -64,11 +65,11 @@ export function HomePage() {
       />
 
       <p className="meta" style={{ fontSize: 15, margin: '8px 0 18px', lineHeight: 1.5 }}>
-        목표 채우면 오스완. 시작은 아래 버튼, 또는 하단 초록 버튼.
+        목표 개수 채우면 오스완. 자극 점수(점)는 아래 카드 · 개수와 다른 축이에요.
       </p>
 
       <SurfaceCard className="stack-sm" style={{ marginBottom: 14 }}>
-        <div className="meta">오늘 목표</div>
+        <div className="meta">오늘 목표 · 개수</div>
         <div className="row">
           <button
             type="button"
@@ -78,8 +79,20 @@ export function HomePage() {
           >
             −
           </button>
-          <div className="hero-num" style={{ flex: 1, textAlign: 'center', fontSize: 40 }}>
+          <div
+            className="hero-num"
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              fontSize: 40,
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'center',
+              gap: 4,
+            }}
+          >
             {target}
+            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-tertiary)' }}>개</span>
           </div>
           <button
             type="button"

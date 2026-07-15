@@ -1,6 +1,9 @@
 import {
+  CORE_STIM_GOAL,
+  LOWER_STIM_GOAL,
   estimateSession,
   buildStimulusCoach,
+  formatPts,
   stimulusLabel,
   type SessionEstimates as Estimates,
 } from '../lib/estimates';
@@ -24,7 +27,7 @@ function Bar({ label, score, hint }: { label: string; score: number; hint: strin
       >
         <span style={{ fontSize: 13, fontWeight: 600 }}>{label}</span>
         <span className="meta" style={{ fontSize: 12 }}>
-          {stimulusLabel(score)} · {score}
+          {stimulusLabel(score)} · {formatPts(score)}
         </span>
       </div>
       <div
@@ -58,8 +61,8 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
   if (compact) {
     return (
       <div className="meta" style={{ fontSize: 12, marginTop: 6 }}>
-        약 {e.kcal} kcal · 하체 {stimulusLabel(e.lowerBody)} {e.lowerBody} · 코어{' '}
-        {stimulusLabel(e.core)} {e.core}
+        약 {e.kcal} kcal · 하체 {stimulusLabel(e.lowerBody)} {formatPts(e.lowerBody)} · 코어{' '}
+        {stimulusLabel(e.core)} {formatPts(e.core)}
       </div>
     );
   }
@@ -86,14 +89,17 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
           {e.weightKg}kg 기준
           {e.usedDefaultWeight ? ' (기본)' : ''}
           <br />
-          목표: 하체 자극 55+ · 코어 40+ (개수와 별개)
+          자극: 하체 {formatPts(LOWER_STIM_GOAL)}+ · 코어 {formatPts(CORE_STIM_GOAL)}+
+          <br />
+          (스쿼트 개수와 별개)
         </div>
       </div>
 
       <div style={{ display: 'grid', gap: 14, marginTop: 16 }}>
-        <Bar label="하체 자극" score={e.lowerBody} hint="허벅지·엉덩이 · 0~100 참고 점수" />
+        <Bar label="하체 자극" score={e.lowerBody} hint="허벅지·엉덩이 · 0~100점 (개수 아님)" />
         <Bar label="코어 자극" score={e.core} hint="배·허리 버티기 · 보통 하체보다 낮음" />
       </div>
+
 
       <p className="meta" style={{ fontSize: 11, marginTop: 14, lineHeight: 1.45 }}>
         {(() => {

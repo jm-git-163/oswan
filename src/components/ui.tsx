@@ -35,15 +35,38 @@ export function HeroStat({
   value,
   label,
   hint,
+  unit,
 }: {
   value: ReactNode;
   label: string;
   hint?: ReactNode;
+  /** e.g. ‘개’ — rendered next to the big number so units stay clear */
+  unit?: string;
 }) {
   return (
     <div>
-      <div className="hero-num" style={{ fontSize: 'clamp(56px, 16vw, 72px)' }}>
+      <div
+        className="hero-num"
+        style={{
+          fontSize: 'clamp(56px, 16vw, 72px)',
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 6,
+        }}
+      >
         {value}
+        {unit ? (
+          <span
+            style={{
+              fontSize: 'clamp(18px, 5vw, 24px)',
+              fontWeight: 700,
+              color: 'var(--text-secondary, var(--text-tertiary))',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {unit}
+          </span>
+        ) : null}
       </div>
       <div className="meta" style={{ marginTop: 8 }}>
         {label}

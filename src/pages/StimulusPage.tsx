@@ -1,10 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { BrandHeader } from '../components/BrandMark';
+import { MetricLegend } from '../components/MetricLegend';
 import { useHomeStats } from '../hooks/useHomeStats';
 import {
+  CORE_STIM_GOAL,
+  LOWER_STIM_GOAL,
+  STIMULUS_VS_REPS_HINT,
   buildStimulusCoach,
+  formatPts,
+  formatReps,
   stimulusLabel,
-  STIMULUS_GOAL_HINT,
 } from '../lib/estimates';
 import { useAppStore } from '../store';
 
@@ -34,6 +39,39 @@ export function StimulusPage() {
       <h1 className="page-title" style={{ marginTop: 16, fontSize: 28 }}>
         오늘의 자극
       </h1>
+      <p className="meta" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.45 }}>
+        점수는 자극 세기예요. 위에 보이는 스쿼트 개수와는 단위가 다릅니다.
+      </p>
+
+      <div style={{ marginTop: 16 }}>
+        <MetricLegend />
+      </div>
+
+      <div
+        style={{
+          marginTop: 14,
+          padding: '14px 16px',
+          borderRadius: 16,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <div>
+          <div className="meta" style={{ fontSize: 11 }}>
+            오늘 스쿼트 · 개수
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 2, letterSpacing: '-0.03em' }}>
+            {formatReps(reps)}
+          </div>
+        </div>
+        <div className="meta" style={{ fontSize: 12, textAlign: 'right', lineHeight: 1.4, maxWidth: 160 }}>
+          {STIMULUS_VS_REPS_HINT}
+        </div>
+      </div>
 
       <div
         style={{
@@ -63,13 +101,13 @@ export function StimulusPage() {
         <ScoreTile
           label="하체"
           score={todayEst.lowerBody}
-          goal={55}
+          goal={LOWER_STIM_GOAL}
           blurb={coach.meaningLower}
         />
         <ScoreTile
           label="코어"
           score={todayEst.core}
-          goal={40}
+          goal={CORE_STIM_GOAL}
           blurb={coach.meaningCore}
         />
       </div>
@@ -96,9 +134,9 @@ export function StimulusPage() {
       >
         <GuideRow
           title="자극 점수"
-          body="하체 55+ · 코어 40+ (0~100). 하루 ‘괜찮은 자극’ 기준"
+          body={`하체 ${formatPts(LOWER_STIM_GOAL)}+ · 코어 ${formatPts(CORE_STIM_GOAL)}+ (0~100점). 하루 ‘괜찮은 자극’ 기준`}
         />
-        <GuideRow title="스쿼트 개수와 다름" body={STIMULUS_GOAL_HINT} />
+        <GuideRow title="개수 ≠ 점수" body={STIMULUS_VS_REPS_HINT} />
         <GuideRow
           title="의료 아님"
           body="근력·체성분 측정이 아닙니다. 개수와 밀도로 만든 추정이에요."
@@ -136,10 +174,10 @@ function ScoreTile({
   return (
     <div className="surface-card" style={{ padding: 14 }}>
       <div className="meta" style={{ fontSize: 11 }}>
-        {label} · 자극 {goal}+
+        {label} · 자극 {formatPts(goal)}+
       </div>
       <div style={{ fontSize: 36, fontWeight: 800, marginTop: 4, letterSpacing: '-0.04em' }}>
-        {score}
+        {formatPts(score)}
         <span className="meta" style={{ fontSize: 13, fontWeight: 600, marginLeft: 4 }}>
           {stimulusLabel(score)}
         </span>

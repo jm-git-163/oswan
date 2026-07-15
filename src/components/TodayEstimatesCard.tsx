@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom';
+import { MetricLegend } from './MetricLegend';
 import {
+  CORE_STIM_GOAL,
+  LOWER_STIM_GOAL,
   buildStimulusCoach,
+  formatPts,
   stimulusLabel,
   type StimulusVerdict,
 } from '../lib/estimates';
@@ -33,7 +37,7 @@ const VERDICT_TAG: Record<StimulusVerdict, string> = {
   rest: '잘했어요',
 };
 
-/** Compact home card — coach first, numbers secondary */
+/** Compact home card — coach first, scores clearly in ‘점’ (not 개) */
 export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
   if (reps <= 0) return null;
 
@@ -53,7 +57,7 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
         background: 'linear-gradient(165deg, rgba(200,245,74,0.08), transparent 55%)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <span
           style={{
             fontSize: 11,
@@ -68,7 +72,7 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
           {VERDICT_TAG[coach.verdict]}
         </span>
         <span className="meta" style={{ fontSize: 11 }}>
-          오늘의 자극
+          오늘의 자극 점수
         </span>
       </div>
 
@@ -95,17 +99,21 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
         {coach.action}
       </div>
 
-      <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
+      <div style={{ marginTop: 14 }}>
+        <MetricLegend compact reps={reps} />
+      </div>
+
+      <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
         <GoalBar
           label="하체"
           score={lowerBody}
-          goal={55}
+          goal={LOWER_STIM_GOAL}
           feel={stimulusLabel(lowerBody)}
         />
         <GoalBar
           label="코어"
           score={core}
-          goal={40}
+          goal={CORE_STIM_GOAL}
           feel={stimulusLabel(core)}
         />
       </div>
@@ -157,10 +165,10 @@ function GoalBar({
           </span>
         </span>
         <span style={{ fontSize: 13, fontWeight: 800 }}>
-          {score}
+          {formatPts(score)}
           <span className="meta" style={{ fontWeight: 600 }}>
             {' '}
-            / {goal} 자극
+            / {formatPts(goal)}
           </span>
         </span>
       </div>
@@ -194,7 +202,7 @@ function GoalBar({
         />
       </div>
       <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-        {gap > 0 ? `자극 ${goal}까지 ${gap}점` : '자극 구간 이상'}
+        {gap > 0 ? `${formatPts(goal)}까지 ${formatPts(gap)} 남음` : '자극 구간 이상'}
       </div>
     </div>
   );

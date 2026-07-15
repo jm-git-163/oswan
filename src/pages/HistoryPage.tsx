@@ -110,7 +110,7 @@ export function HistoryPage() {
               {stimulusLabel(weekEst.lowerBody)}
             </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              하체 · {weekEst.lowerBody}/55
+              하체 · {weekEst.lowerBody}점/55점
             </div>
           </div>
           <div>
@@ -118,12 +118,12 @@ export function HistoryPage() {
               {stimulusLabel(weekEst.core)}
             </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              코어 · {weekEst.core}/40
+              코어 · {weekEst.core}점/40점
             </div>
           </div>
         </div>
         <p className="meta" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.4 }}>
-          칼로리는 합산, 하체·코어는 세션 평균 자극 점수. 기준: 하체 55+ · 코어 40+ (개수 목표와 별개)
+          칼로리는 합산, 하체·코어는 세션 평균 자극 점수(점). 기준: 하체 55점+ · 코어 40점+ · 막대는 스쿼트 개수
         </p>
       </div>
 
@@ -151,7 +151,7 @@ export function HistoryPage() {
             <div className="meta" style={{ fontSize: 10 }}>
               {b.label}
             </div>
-            <div style={{ fontSize: 11, fontWeight: 600, marginTop: 2 }}>{b.reps}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, marginTop: 2 }}>{b.reps}개</div>
           </div>
         ))}
       </div>
@@ -164,8 +164,8 @@ export function HistoryPage() {
             <div key={s.id} className="card" style={{ display: 'flex', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontWeight: 700 }}>
-                  {s.reps}
-                  <span className="meta"> / {s.targetReps}</span>
+                  {s.reps}개
+                  <span className="meta"> / {s.targetReps}개</span>
                 </div>
                 <div className="meta" style={{ marginTop: 4 }}>
                   {new Date(s.endedAt).toLocaleString('ko-KR')}
@@ -178,7 +178,7 @@ export function HistoryPage() {
                       core: est.core,
                       reps: s.reps,
                     });
-                    return `${c.headline} · 하체 ${est.lowerBody}/55 · 코어 ${est.core}/40`;
+                    return `${c.headline} · 하체 ${est.lowerBody}점/55점 · 코어 ${est.core}점/40점`;
                   })()}
                 </div>
               </div>

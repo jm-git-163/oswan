@@ -26,11 +26,11 @@ export function resultShareText(
   est?: { kcal: number; lowerBody: number; core: number },
 ) {
   const estLine = est
-    ? `\n약 ${est.kcal}kcal · 하체 ${est.lowerBody} · 코어 ${est.core} (추정)`
+    ? `\n약 ${est.kcal}kcal · 하체 ${est.lowerBody}점 · 코어 ${est.core}점 (추정)`
     : '';
   return cleared
     ? `${nickname} · ${reps}개 · 오스완!${estLine}\n오늘 스쿼트 완료 #오스완 #오늘스쿼트완료`
-    : `${nickname} · ${reps}/${target} · 다시 오스완!${estLine}`;
+    : `${nickname} · ${reps}개/${target}개 · 다시 오스완!${estLine}`;
 }
 
 /** Draw branded challenge card for messenger image share. */
