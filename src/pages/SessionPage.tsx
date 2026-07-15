@@ -33,9 +33,9 @@ function cameraErrorMessage(err: unknown): string {
     return '카메라를 찾지 못했어요. 다른 기기나 브라우저로 시도해 주세요.';
   }
   if (name === 'NotReadableError' || name === 'TrackStartError') {
-    return '카메라를 잠글 수 없어요. 다른 탭·앱(줌, 카메라앱, oswan 다른 탭)을 모두 닫고, 이 페이지를 새로고침한 뒤 다시 「허용하기」를 눌러 주세요.';
+    return '카메라를 잠글 수 없어요. 다른 탭·앱(줌, 카메라앱, oswan 다른 탭)을 모두 닫고, 이 페이지를 새로고침한 뒤 다시 「카메라 허용하고 스쿼트 시작」을 눌러 주세요.';
   }
-  return '카메라를 켜지 못했어요. 허용 버튼을 다시 눌러 주세요.';
+  return '카메라를 켜지 못했어요. 「카메라 허용하고 스쿼트 시작」을 다시 눌러 주세요.';
 }
 
 export function SessionPage() {
@@ -79,6 +79,7 @@ export function SessionPage() {
   const [showStanceGuide, setShowStanceGuide] = useState(true);
   const coachPrefsRef = useRef(coachPrefs);
   coachPrefsRef.current = coachPrefs;
+  const stanceGuideSpoken = useRef(false);
 
   const cameraOn = phase !== 'need_perm' && phase !== 'requesting';
   const { ready, error: poseError, landmarks } = usePose(videoRef, cameraOn);
@@ -100,6 +101,25 @@ export function SessionPage() {
     if (phase === 'counting' && coachPrefs.music) startSessionBgm();
     else stopSessionBgm();
   }, [phase, coachPrefs.music]);
+
+  /** 응원(안내) OFF면 진행 중인 음성도 바로 끊기 */
+  useEffect(() => {
+    if (!coachPrefs.cheer && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, [coachPrefs.cheer]);
+
+  /** 카메라 켜진 직후 한 번 — 응원 ON일 때만 음성 안내 */
+  useEffect(() => {
+    if (phase !== 'stance') return;
+    if (stanceGuideSpoken.current) return;
+    stanceGuideSpoken.current = true;
+    if (!getCoachPrefs().cheer) return;
+    const t = window.setTimeout(() => {
+      speakCheer('원 안에 머리 점이 들어가면 시작합니다.');
+    }, 450);
+    return () => clearTimeout(t);
+  }, [phase]);
 
   // Start raw clip recording when countdown hits counting (for pride compose)
   useEffect(() => {
@@ -291,7 +311,7 @@ export function SessionPage() {
             카메라가 필요해요
           </h1>
           <p className="meta" style={{ fontSize: 15, lineHeight: 1.55, margin: '12px 0 16px' }}>
-            아래 그림처럼 준비한 뒤 허용을 눌러 주세요.
+            아래처럼 준비한 뒤 「카메라 허용하고 스쿼트 시작」을 눌러 주세요.
             <br />
             영상은 서버로 전송되지 않아요.
           </p>
@@ -319,7 +339,7 @@ export function SessionPage() {
             disabled={phase === 'requesting'}
             onClick={() => void requestCamera()}
           >
-            {phase === 'requesting' ? '요청 중…' : '카메라 허용하기'}
+            {phase === 'requesting' ? '카메라 켜는 중…' : '카메라 허용하고 스쿼트 시작'}
           </button>
           <button
             className="cta-secondary"

@@ -145,8 +145,8 @@ export function SquatSetupGuide({ variant = 'gate' }: Props) {
       {gate && (
         <p className="meta" style={{ margin: '12px 0 0', fontSize: 12, lineHeight: 1.5 }}>
           <strong style={{ color: 'var(--accent)' }}>점 → 원 안</strong>이면 시작,{' '}
-          <strong style={{ color: 'var(--accent)' }}>앉았다 일어서면</strong> 1개. 음악·응원은{' '}
-          <strong style={{ color: 'var(--accent)' }}>처음부터 켜져 있고</strong>, 「♪ 음악」「응원」
+          <strong style={{ color: 'var(--accent)' }}>앉았다 일어서면</strong> 1개. 음악·안내는{' '}
+          <strong style={{ color: 'var(--accent)' }}>처음부터 켜져 있고</strong>, 「♪ 음악」「안내·응원」
           버튼으로 끌 수 있어요.
         </p>
       )}

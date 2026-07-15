@@ -16,7 +16,7 @@ export function CoachToggles({ prefs, onChange, variant = 'card' }: Props) {
     return (
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
         <Chip active={prefs.music} onClick={() => toggle('music')} label="♪ 음악" />
-        <Chip active={prefs.cheer} onClick={() => toggle('cheer')} label="응원" />
+        <Chip active={prefs.cheer} onClick={() => toggle('cheer')} label="안내·응원" />
       </div>
     );
   }
@@ -34,8 +34,8 @@ export function CoachToggles({ prefs, onChange, variant = 'card' }: Props) {
         onToggle={() => toggle('music')}
       />
       <ToggleRow
-        label="카운트 응원"
-        hint="개수마다 문구·음성 · 처음부터 켜짐"
+        label="안내 · 응원 음성"
+        hint="시작 안내·개수 응원 · 끄면 소리 없음"
         on={prefs.cheer}
         onToggle={() => toggle('cheer')}
       />
