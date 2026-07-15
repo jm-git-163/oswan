@@ -78,7 +78,7 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
   if (compact) {
     return (
       <div className="meta" style={{ fontSize: 12, marginTop: 6, wordBreak: 'keep-all' }}>
-        약 {e.kcal} kcal · 하체 {stimulusLabel(e.lowerBody)} {formatReps(lowerEq)} · 코어{' '}
+        약 {e.kcal} kcal · 하체 자극 {stimulusLabel(e.lowerBody)} {formatReps(lowerEq)} · 코어 자극{' '}
         {stimulusLabel(e.core)} {formatReps(coreEq)}
       </div>
     );
@@ -115,13 +115,13 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
           label="하체 자극"
           current={lowerEq}
           goal={DAILY_LOWER_REPS}
-          hint={`허벅지·엉덩이 · 하루 ${formatReps(DAILY_LOWER_REPS)}이면 OK`}
+          hint={`허벅지·엉덩이 · 하루 ${formatReps(DAILY_LOWER_REPS)}이면 OK · 지금 ${stimulusLabel(e.lowerBody)}`}
         />
         <Bar
           label="코어 자극"
           current={coreEq}
           goal={DAILY_CORE_REPS}
-          hint={`배·허리 · 하루 ${formatReps(DAILY_CORE_REPS)}이면 OK`}
+          hint={`배·허리 · 하루 ${formatReps(DAILY_CORE_REPS)}이면 OK · 지금 ${stimulusLabel(e.core)}`}
         />
       </div>
 

@@ -110,7 +110,7 @@ export function HistoryPage() {
               {stimulusLabel(weekEst.lowerBody)}
             </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              하체 · {formatReps(lowerRepEquiv(weekEst.lowerBody))}/{formatReps(DAILY_LOWER_REPS)}
+              하체 자극 · {formatReps(lowerRepEquiv(weekEst.lowerBody))}/{formatReps(DAILY_LOWER_REPS)}
             </div>
           </div>
           <div>
@@ -118,7 +118,7 @@ export function HistoryPage() {
               {stimulusLabel(weekEst.core)}
             </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              코어 · {formatReps(coreRepEquiv(weekEst.core))}/{formatReps(DAILY_CORE_REPS)}
+              코어 자극 · {formatReps(coreRepEquiv(weekEst.core))}/{formatReps(DAILY_CORE_REPS)}
             </div>
           </div>
         </div>

@@ -91,30 +91,24 @@ export function StimulusPage() {
       >
         <div
           style={{
-            fontSize: 26,
+            fontSize: 20,
             fontWeight: 800,
             letterSpacing: '-0.03em',
-            lineHeight: 1.35,
+            lineHeight: 1.4,
             wordBreak: 'keep-all',
-          }}
-        >
-          {coach.headline}
-        </div>
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 16,
-            fontWeight: 600,
             color: 'var(--accent)',
-            lineHeight: 1.45,
-            wordBreak: 'keep-all',
           }}
         >
           {coach.action}
         </div>
-        {left > 0 && coach.verdict !== 'rest' && (
+        {left > 0 && coach.verdict !== 'rest' && coach.verdict !== 'done' && (
           <div className="meta" style={{ marginTop: 12, fontSize: 13 }}>
             하체까지 약 {formatReps(left)} 남음
+          </div>
+        )}
+        {(coach.verdict === 'rest' || coach.verdict === 'done') && (
+          <div className="meta" style={{ marginTop: 12, fontSize: 13, wordBreak: 'keep-all' }}>
+            {coach.headline}
           </div>
         )}
       </div>
@@ -128,14 +122,14 @@ export function StimulusPage() {
         }}
       >
         <ScoreTile
-          label="하체"
+          label="하체 자극"
           current={lowerEq}
           goal={DAILY_LOWER_REPS}
           feel={stimulusLabel(todayEst.lowerBody)}
           blurb={coach.meaningLower}
         />
         <ScoreTile
-          label="코어"
+          label="코어 자극"
           current={coreEq}
           goal={DAILY_CORE_REPS}
           feel={stimulusLabel(todayEst.core)}
@@ -198,7 +192,7 @@ function ScoreTile({
   return (
     <div className="surface-card" style={{ padding: 14 }}>
       <div className="meta" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
-        {label} · 목표 {formatReps(goal)}
+        {label} · {feel} · 목표 {formatReps(goal)}
       </div>
       <div
         style={{
@@ -210,9 +204,6 @@ function ScoreTile({
         }}
       >
         {formatReps(current)}
-        <span className="meta" style={{ fontSize: 13, fontWeight: 600, marginLeft: 6 }}>
-          {feel}
-        </span>
       </div>
       <div
         style={{

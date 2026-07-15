@@ -80,23 +80,11 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
         </span>
       </div>
 
+      {/* 헤드라인(예: 거의 찼어요)은 바의 가벼움/보통과 충돌해 홈에서는 생략. 행동 제안만. */}
       <div
         style={{
-          fontSize: 22,
-          fontWeight: 800,
-          letterSpacing: '-0.03em',
-          lineHeight: 1.3,
-          color: 'var(--text)',
-          wordBreak: 'keep-all',
-        }}
-      >
-        {coach.headline}
-      </div>
-      <div
-        style={{
-          marginTop: 8,
-          fontSize: 15,
-          fontWeight: 600,
+          fontSize: 16,
+          fontWeight: 700,
           color: 'var(--accent)',
           lineHeight: 1.4,
           wordBreak: 'keep-all',
@@ -111,13 +99,13 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
 
       <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
         <GoalBar
-          label="하체"
+          label="하체 자극"
           current={lowerEq}
           goal={DAILY_LOWER_REPS}
           feel={stimulusLabel(lowerBody)}
         />
         <GoalBar
-          label="코어"
+          label="코어 자극"
           current={coreEq}
           goal={DAILY_CORE_REPS}
           feel={stimulusLabel(core)}
