@@ -30,6 +30,8 @@ export type Challenge = {
   status: ChallengeStatus;
   ruleVersion: string;
   winMode: 'clear_target';
+  /** Honor-only stake shown to invitee (no payment). */
+  stakeLabel?: string;
   fromCleared?: boolean;
   toCleared?: boolean;
   fromSessionId?: string;

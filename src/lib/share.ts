@@ -8,20 +8,30 @@ function isUserCancel(err: unknown) {
   return err instanceof DOMException && err.name === 'AbortError';
 }
 
-export function challengeShareText(challenge: Challenge, url: string) {
-  return [
-    `🥊 오스완 도전장`,
-    `${challenge.fromNickname} · ${challenge.targetReps}개 클리어 도전`,
-    `링크를 눌러 Chrome에서 수락·스쿼트`,
-    url,
-    `#오스완 #오늘스쿼트완료`,
-  ].join('\n');
+/** Minimal caption — never include the raw URL (messengers show it under OG card). */
+export function challengeShareCaption(challenge: Challenge) {
+  const stake = challenge.stakeLabel ? ` · ${challenge.stakeLabel}` : '';
+  return `🥊 ${challenge.fromNickname} · ${challenge.targetReps}개 도전${stake} · 오스완`;
 }
 
-export function resultShareText(nickname: string, reps: number, target: number, cleared: boolean) {
+/** SMS / clipboard paste when OG share isn't available — URL once at the end. */
+export function challengeShareText(challenge: Challenge, url: string) {
+  return `${challengeShareCaption(challenge)}\n${url}`;
+}
+
+export function resultShareText(
+  nickname: string,
+  reps: number,
+  target: number,
+  cleared: boolean,
+  est?: { kcal: number; lowerBody: number; core: number },
+) {
+  const estLine = est
+    ? `\n약 ${est.kcal}kcal · 하체 ${est.lowerBody} · 코어 ${est.core} (추정)`
+    : '';
   return cleared
-    ? `${nickname} · ${reps}개 · 오스완!\n오늘 스쿼트 완료 #오스완 #오늘스쿼트완료`
-    : `${nickname} · ${reps}/${target} · 다시 오스완!`;
+    ? `${nickname} · ${reps}개 · 오스완!${estLine}\n오늘 스쿼트 완료 #오스완 #오늘스쿼트완료`
+    : `${nickname} · ${reps}/${target} · 다시 오스완!${estLine}`;
 }
 
 /** Draw branded challenge card for messenger image share. */
@@ -72,16 +82,23 @@ export async function renderChallengeCardBlob(challenge: Challenge): Promise<Blo
 
   ctx.fillStyle = '#A1A1A1';
   ctx.font = '600 36px Pretendard, sans-serif';
-  ctx.fillText('목표 개수 · 클리어하면 오스완', w / 2, 870);
+  ctx.fillText('목표 개수 · 클리어하면 오스완', w / 2, 860);
 
-  roundRect(ctx, 180, 980, w - 360, 100, 28, '#1E1E1E');
+  if (challenge.stakeLabel) {
+    roundRect(ctx, 140, 900, w - 280, 72, 22, '#1E1E1E');
+    ctx.fillStyle = '#C8F54A';
+    ctx.font = '700 30px Pretendard, sans-serif';
+    ctx.fillText(challenge.stakeLabel, w / 2, 948);
+  }
+
+  roundRect(ctx, 180, 1000, w - 360, 90, 28, '#1E1E1E');
   ctx.fillStyle = '#C8F54A';
-  ctx.font = '700 34px Pretendard, sans-serif';
-  ctx.fillText('너도 오스완 할 수 있어?', w / 2, 1044);
+  ctx.font = '700 32px Pretendard, sans-serif';
+  ctx.fillText('너도 오스완 할 수 있어?', w / 2, 1058);
 
   ctx.fillStyle = '#6E6E6E';
   ctx.font = '500 22px Pretendard, sans-serif';
-  ctx.fillText('링크를 눌러 Chrome에서 도전 수락', w / 2, 1140);
+  ctx.fillText('링크를 눌러 Chrome에서 도전 수락', w / 2, 1155);
 
   try {
     const shareUrl = challengeShareUrl(challenge);
@@ -163,43 +180,47 @@ function drawStick(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: num
 }
 
 /**
- * Share invite: short URL in text (once). Optional PNG thumbnail.
- * Never put base64 payload in the share body.
+ * Share invite as URL only so Kakao/Line render OG thumbnail (tappable).
+ * Never share PNG — photos are not clickable challenge links.
  */
 export function canNativeShare(): boolean {
   return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 }
 
-export async function shareChallengeInvite(
-  challenge: Challenge,
-  opts?: { preparedFile?: File | null; preferImage?: boolean },
-): Promise<ShareOutcome> {
+export async function shareChallengeInvite(challenge: Challenge): Promise<ShareOutcome> {
   const url = challengeShareUrl(challenge);
   const title = '오스완 도전장';
-  const text = challengeShareText(challenge, url);
+  const caption = challengeShareCaption(challenge);
 
   if (!canNativeShare()) {
     return 'fallback';
   }
 
-  const file = opts?.preparedFile ?? null;
-
-  // Thumbnail + short caption (Kakao shows image; text has tappable short link)
-  if (opts?.preferImage !== false && file) {
-    try {
-      const data = { files: [file], title, text };
-      if (!navigator.canShare || navigator.canShare(data)) {
-        await navigator.share(data);
-        return 'shared';
-      }
-    } catch (err) {
-      if (isUserCancel(err)) return 'cancelled';
+  // 1) URL alone — best chance of OG card without visible junk URL text
+  try {
+    const data: ShareData = { title, url };
+    if (!navigator.canShare || navigator.canShare(data)) {
+      await navigator.share(data);
+      return 'shared';
     }
+  } catch (err) {
+    if (isUserCancel(err)) return 'cancelled';
   }
 
-  // Text has the URL once — do NOT also pass `url` (duplicates in Kakao)
+  // 2) Short caption + url field (still no URL string inside text)
   try {
-    await navigator.share({ title, text });
+    const data: ShareData = { title, text: caption, url };
+    if (!navigator.canShare || navigator.canShare(data)) {
+      await navigator.share(data);
+      return 'shared';
+    }
+  } catch (err) {
+    if (isUserCancel(err)) return 'cancelled';
+  }
+
+  // 3) Last resort: text with URL once
+  try {
+    await navigator.share({ title, text: challengeShareText(challenge, url) });
     return 'shared';
   } catch (err) {
     if (isUserCancel(err)) return 'cancelled';
@@ -242,10 +263,10 @@ export function openTelegramShare(url: string, text: string) {
   );
 }
 
-/** Copy invite then try to foreground KakaoTalk (paste there). */
-export async function openKakaoWithCopiedText(text: string): Promise<'opened' | 'copied'> {
+/** Copy invite URL only (OG-friendly paste), then try to open KakaoTalk. */
+export async function openKakaoWithCopiedText(textOrUrl: string): Promise<'opened' | 'copied'> {
   try {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(textOrUrl);
   } catch {
     /* continue */
   }

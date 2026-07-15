@@ -19,6 +19,8 @@ npm run dev
 |---|---|
 | [docs/SUPABASE.md](docs/SUPABASE.md) | SQL 실행, 키, 그래프/랭킹 |
 | [docs/VERCEL.md](docs/VERCEL.md) | `vercel login` → 영구 HTTPS 배포 |
+| [docs/MONETIZATION.md](docs/MONETIZATION.md) | 출시 전 수익화 레이어 (무료 코어 / Plus) |
+| [docs/PRIDE_TEMPLATES.md](docs/PRIDE_TEMPLATES.md) | 자랑 영상 템플릿 · 바이럴 아이디어 |
 | [supabase/migrations/001_oswan_schema.sql](supabase/migrations/001_oswan_schema.sql) | 스키마 원본 |
 
 ## 포함 기능

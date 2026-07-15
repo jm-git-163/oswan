@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CheerBurst } from '../components/CheerBurst';
+import { CoachToggles } from '../components/CoachToggles';
 import { ModelSquatExample } from '../components/ModelSquatExample';
+import { SquatSetupGuide } from '../components/SquatSetupGuide';
 import { startCamera, stopCamera, releaseVideo, usePose } from '../hooks/usePose';
 import { HEAD_GUIDE, playRepBeep, stanceOk, useSquatEngine } from '../hooks/useSquatEngine';
-import { addSession, completeChallenge } from '../lib/storage';
+import { getCoachPrefs, type CoachPrefs } from '../lib/coachPrefs';
+import {
+  cheerForRep,
+  speakCheer,
+  startSessionBgm,
+  stopSessionBgm,
+  type CheerCue,
+} from '../lib/sessionCoach';
+import { addSession, completeChallenge, getChallenge } from '../lib/storage';
 import { RULE_VERSION } from '../lib/types';
 import { useAppStore } from '../store';
 import { SessionRecorder } from '../video/sessionRecorder';
@@ -36,6 +47,21 @@ export function SessionPage() {
   const setLastResult = useAppStore((s) => s.setLastResult);
   const setLastRawVideo = useAppStore((s) => s.setLastRawVideo);
 
+  // Challenge sessions must go through accept on /c/:id first
+  useEffect(() => {
+    if (!challengeId) return;
+    const c = getChallenge(challengeId);
+    if (!c) {
+      navigate(`/c/${challengeId}`, { replace: true });
+      return;
+    }
+    const allowed =
+      c.fromSoftUserId === user.id || c.toSoftUserId === user.id;
+    if (!allowed) {
+      navigate(`/c/${challengeId}`, { replace: true });
+    }
+  }, [challengeId, user.id, navigate]);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef(new SessionRecorder());
@@ -47,6 +73,12 @@ export function SessionPage() {
   const [permError, setPermError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [pulse, setPulse] = useState(false);
+  const [coachPrefs, setCoachPrefsState] = useState<CoachPrefs>(() => getCoachPrefs());
+  const [cheerCue, setCheerCue] = useState<CheerCue | null>(null);
+  const [cheerKey, setCheerKey] = useState(0);
+  const [showStanceGuide, setShowStanceGuide] = useState(true);
+  const coachPrefsRef = useRef(coachPrefs);
+  coachPrefsRef.current = coachPrefs;
 
   const cameraOn = phase !== 'need_perm' && phase !== 'requesting';
   const { ready, error: poseError, landmarks } = usePose(videoRef, cameraOn);
@@ -56,11 +88,18 @@ export function SessionPage() {
 
   useEffect(() => {
     return () => {
+      stopSessionBgm();
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       void recorderRef.current.stop();
       stopCamera(streamRef.current);
       streamRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (phase === 'counting' && coachPrefs.music) startSessionBgm();
+    else stopSessionBgm();
+  }, [phase, coachPrefs.music]);
 
   // Start raw clip recording when countdown hits counting (for pride compose)
   useEffect(() => {
@@ -101,6 +140,8 @@ export function SessionPage() {
         challengeId,
         sessionId: session.id,
       });
+      stopSessionBgm();
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       stopCamera(streamRef.current);
       streamRef.current = null;
       navigate('/result', { replace: true });
@@ -163,11 +204,24 @@ export function SessionPage() {
   useEffect(() => {
     if (tick > 0) {
       setPulse(true);
-      playRepBeep(update?.count ?? tick);
+      const count = update?.count ?? tick;
+      playRepBeep(count);
+      if (coachPrefsRef.current.cheer) {
+        const cue = cheerForRep(count, target);
+        setCheerCue(cue);
+        setCheerKey((k) => k + 1);
+        if (count % 5 === 0 || count >= target - 3 || cue.tone === 'finish' || cue.tone === 'hot') {
+          speakCheer(cue.line);
+        }
+      }
       const t = window.setTimeout(() => setPulse(false), 180);
-      return () => clearTimeout(t);
+      const c = window.setTimeout(() => setCheerCue(null), 1700);
+      return () => {
+        clearTimeout(t);
+        clearTimeout(c);
+      };
     }
-  }, [tick, update?.count]);
+  }, [tick, update?.count, target]);
 
   const reps = update?.count ?? 0;
 
@@ -237,10 +291,12 @@ export function SessionPage() {
             카메라가 필요해요
           </h1>
           <p className="meta" style={{ fontSize: 15, lineHeight: 1.55, margin: '12px 0 16px' }}>
-            아래 버튼을 누르면 브라우저 허용 창이 뜹니다.
+            아래 그림처럼 준비한 뒤 허용을 눌러 주세요.
             <br />
             영상은 서버로 전송되지 않아요.
           </p>
+
+          <SquatSetupGuide variant="gate" />
 
           <ModelSquatExample variant="gate" />
 
@@ -352,10 +408,43 @@ export function SessionPage() {
                   <span style={{ color: 'var(--accent)', fontWeight: 800 }}>머리를 원 안에</span>
                   <br />
                   <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12 }}>
-                    맞추면 그 기준으로 스쿼트를 세어요
+                    점이 원에 들어오면 그 기준으로 스쿼트를 세어요
                   </span>
                 </div>
               </div>
+              {showStanceGuide && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 12,
+                    right: 12,
+                    bottom: 100,
+                    zIndex: 8,
+                    pointerEvents: 'auto',
+                  }}
+                >
+                  <div style={{ position: 'relative' }}>
+                    <SquatSetupGuide variant="stance" />
+                    <button
+                      type="button"
+                      onClick={() => setShowStanceGuide(false)}
+                      style={{
+                        position: 'absolute',
+                        top: 6,
+                        right: 8,
+                        zIndex: 2,
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        background: 'rgba(0,0,0,0.7)',
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      닫기
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -425,6 +514,8 @@ export function SessionPage() {
             )}
           </div>
 
+          {phase === 'counting' && <CheerBurst cue={cheerCue} flashKey={cheerKey} />}
+
           <div
             style={{
               position: 'absolute',
@@ -447,6 +538,13 @@ export function SessionPage() {
             >
               {statusText}
             </div>
+            {(phase === 'stance' || phase === 'calibrating' || phase === 'counting') && (
+              <CoachToggles
+                variant="chips"
+                prefs={coachPrefs}
+                onChange={setCoachPrefsState}
+              />
+            )}
             {phase === 'counting' && (
               <button
                 className="cta-secondary"

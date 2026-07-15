@@ -130,8 +130,8 @@ export async function copyPrideCaption(caption: string): Promise<boolean> {
 
 export function prideCaption(nickname: string, reps: number, cleared: boolean) {
   return cleared
-    ? `${nickname} · ${reps}개 · 오스완!\n오늘 스쿼트 완료 #오스완 #오늘스쿼트완료 #스쿼트챌린지`
-    : `${nickname} · ${reps}개 · 다시 오스완! #오스완`;
+    ? `${nickname} 오늘 스쿼트 ${reps}개 · 오스완!\n같이 할 사람? #오스완 #오늘스쿼트완료 #스쿼트챌린지`
+    : `${nickname} · ${reps}개 · 목표까지 한 번 더 #오스완`;
 }
 
 export function openInstagram() {

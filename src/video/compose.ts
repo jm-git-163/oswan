@@ -66,8 +66,24 @@ async function loadAudioBuffer(ctx: AudioContext, src: string): Promise<AudioBuf
   }
 }
 
+function coverVideo(
+  ctx: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  const vw = video.videoWidth || 1;
+  const vh = video.videoHeight || 1;
+  const scale = Math.max(w / vw, h / vh);
+  const dw = vw * scale;
+  const dh = vh * scale;
+  ctx.drawImage(video, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+}
+
 /**
- * Real-time canvas compose (MotiQ-style): play clip once, burn layers + BGM.
+ * Real-time canvas compose: play clip once, burn layout + BGM.
  */
 export async function composePrideVideo(
   raw: Blob,
@@ -110,8 +126,8 @@ export async function composePrideVideo(
   try {
     recorder = new MediaRecorder(mixed, {
       mimeType: mime,
-      videoBitsPerSecond: 2_500_000,
-      audioBitsPerSecond: 96_000,
+      videoBitsPerSecond: 3_200_000,
+      audioBitsPerSecond: 128_000,
     });
   } catch {
     recorder = new MediaRecorder(mixed);
@@ -170,7 +186,6 @@ export async function composePrideVideo(
   } catch {
     /* */
   }
-  // slight tail so last frames flush
   await new Promise((r) => setTimeout(r, 120));
   recorder.stop();
   return done;
@@ -185,18 +200,94 @@ function drawFrame(
   totalMs: number,
   beatPeriod: number,
 ) {
-  const { accent, accent2, bgTop, bgBot } = template;
   const beatPhase = (ms % beatPeriod) / beatPeriod;
   const beatPulse = Math.pow(1 - beatPhase, 2.4);
+  const progress = Math.min(1, ms / Math.max(1, totalMs));
+  const shown = Math.min(
+    meta.reps,
+    Math.max(1, Math.round(meta.reps * Math.max(progress, 0.12))),
+  );
 
+  switch (template.layout) {
+    case 'fullbleed':
+      drawFullbleed(ctx, video, template, meta, ms, totalMs, beatPulse, shown, progress);
+      break;
+    case 'stamp':
+      drawStamp(ctx, video, template, meta, ms, totalMs, beatPulse, shown, progress);
+      break;
+    case 'scoreboard':
+      drawScoreboard(ctx, video, template, meta, ms, totalMs, beatPulse, shown, progress);
+      break;
+    default:
+      drawFramed(ctx, video, template, meta, ms, totalMs, beatPulse, shown, progress);
+  }
+}
+
+function drawBg(ctx: CanvasRenderingContext2D, template: PrideTemplate) {
   const g = ctx.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, bgTop);
-  g.addColorStop(1, bgBot);
+  g.addColorStop(0, template.bgTop);
+  g.addColorStop(1, template.bgBot);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
+}
+
+function drawHashtags(ctx: CanvasRenderingContext2D, y = H - 36) {
+  ctx.fillStyle = '#6E6E6E';
+  ctx.font = '600 14px Pretendard, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('#오스완  #오늘스쿼트완료  #스쿼트챌린지', W / 2, y);
+}
+
+function drawEndBadge(
+  ctx: CanvasRenderingContext2D,
+  meta: ComposeMeta,
+  ms: number,
+  totalMs: number,
+  accent: string,
+) {
+  if (ms <= totalMs - 2800) return;
+  const local = (ms - (totalMs - 2800)) / 2800;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, local * 2);
+  ctx.translate(W / 2, H - 200);
+  ctx.rotate((-8 * Math.PI) / 180);
+  rr(ctx, -120, -40, 240, 80, 18);
+  ctx.fillStyle = meta.cleared ? accent : '#FF5A5A';
+  ctx.fill();
+  ctx.fillStyle = '#0A0A0A';
+  ctx.font = '800 36px Pretendard, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(meta.cleared ? '오스완!' : '다시!', 0, 2);
+  ctx.restore();
+}
+
+function drawVignette(ctx: CanvasRenderingContext2D, strength = 0.5) {
+  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.18, W / 2, H / 2, H * 0.78);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, `rgba(0,0,0,${strength})`);
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/** Classic lime frame card */
+function drawFramed(
+  ctx: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  template: PrideTemplate,
+  meta: ComposeMeta,
+  ms: number,
+  totalMs: number,
+  beatPulse: number,
+  shown: number,
+  progress: number,
+) {
+  const { accent, accent2 } = template;
+  drawBg(ctx, template);
 
   ctx.save();
-  ctx.globalAlpha = 0.2 + beatPulse * 0.08;
+  ctx.globalAlpha = 0.18 + beatPulse * 0.08;
   ctx.strokeStyle = accent;
   ctx.lineWidth = 1;
   const scroll = (ms * 0.04) % 48;
@@ -206,47 +297,23 @@ function drawFrame(
     ctx.lineTo(W, y + scroll);
     ctx.stroke();
   }
-  for (let x = 0; x < W; x += 48) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  ctx.save();
-  for (let i = 0; i < 18; i++) {
-    const life = ((ms * 0.0004) + i / 18) % 1;
-    const x = (Math.sin(i * 12.7) * 0.5 + 0.5) * W;
-    const y = H - life * (H + 40);
-    ctx.globalAlpha = (1 - life) * 0.55;
-    ctx.fillStyle = i % 2 ? accent : accent2;
-    ctx.beginPath();
-    ctx.arc(x, y, 2 + (i % 3), 0, Math.PI * 2);
-    ctx.fill();
-  }
   ctx.restore();
 
   const padX = 36;
-  const top = 160;
-  const camH = H * 0.58;
+  const top = 150;
+  const camH = H * 0.56;
   const camW = W - padX * 2;
   ctx.save();
   rr(ctx, padX, top, camW, camH, 28);
   ctx.clip();
-  const vw = video.videoWidth || 1;
-  const vh = video.videoHeight || 1;
-  const scale = Math.max(camW / vw, camH / vh);
-  const dw = vw * scale;
-  const dh = vh * scale;
-  ctx.drawImage(video, padX + (camW - dw) / 2, top + (camH - dh) / 2, dw, dh);
+  coverVideo(ctx, video, padX, top, camW, camH);
   ctx.restore();
 
   ctx.save();
   ctx.strokeStyle = hexAlpha(accent, 0.45 + beatPulse * 0.4);
   ctx.lineWidth = 3 + beatPulse * 4;
   ctx.shadowColor = accent;
-  ctx.shadowBlur = 12 + beatPulse * 18;
+  ctx.shadowBlur = 12 + beatPulse * 16;
   rr(ctx, padX, top, camW, camH, 28);
   ctx.stroke();
   ctx.restore();
@@ -258,7 +325,6 @@ function drawFrame(
   ctx.fillStyle = '#A1A1A1';
   ctx.font = '600 16px Pretendard, sans-serif';
   ctx.fillText('오늘 스쿼트 완료', 40, 92);
-
   ctx.textAlign = 'right';
   ctx.fillStyle = accent2;
   ctx.font = '700 14px Pretendard, sans-serif';
@@ -267,33 +333,335 @@ function drawFrame(
   ctx.font = '600 18px Pretendard, sans-serif';
   ctx.fillText(meta.nickname, W - 40, 92);
 
-  if (ms < 2200) {
-    const a = ms < 400 ? ms / 400 : ms > 1800 ? (2200 - ms) / 400 : 1;
+  if (ms < 2000) {
+    const a = ms < 350 ? ms / 350 : ms > 1600 ? (2000 - ms) / 400 : 1;
     ctx.save();
     ctx.globalAlpha = Math.max(0, a);
     ctx.fillStyle = accent;
-    ctx.font = '800 54px Pretendard, sans-serif';
+    ctx.font = '800 52px Pretendard, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`SQUAT × ${meta.targetReps}`, W / 2, top + camH / 2);
     ctx.restore();
   }
 
-  const progress = Math.min(1, ms / Math.max(1, totalMs));
-  const shown = Math.min(
-    meta.reps,
-    Math.max(1, Math.round(meta.reps * Math.max(progress, 0.15))),
-  );
   ctx.textAlign = 'center';
   ctx.fillStyle = '#FFFFFF';
   ctx.font = '800 72px Pretendard, sans-serif';
-  ctx.fillText(`${shown}`, W / 2, top + camH + 90);
+  ctx.fillText(`${shown}`, W / 2, top + camH + 88);
   ctx.fillStyle = accent;
   ctx.font = '700 22px Pretendard, sans-serif';
-  ctx.fillText(`/ ${meta.targetReps} · 목표 개수`, W / 2, top + camH + 126);
+  ctx.fillText(`/ ${meta.targetReps} · 목표`, W / 2, top + camH + 124);
 
+  drawProgressRing(ctx, padX + 40, top + 40, progress, accent);
+  drawEndBadge(ctx, meta, ms, totalMs, accent);
+  drawHashtags(ctx);
+  drawVignette(ctx, 0.42);
+}
+
+/** Edge-to-edge camera — neon / cinematic */
+function drawFullbleed(
+  ctx: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  template: PrideTemplate,
+  meta: ComposeMeta,
+  ms: number,
+  totalMs: number,
+  beatPulse: number,
+  shown: number,
+  progress: number,
+) {
+  const { accent, accent2 } = template;
+  const film = template.id === 'cinematic';
+
+  coverVideo(ctx, video, 0, 0, W, H);
+
+  if (film) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, W, 110);
+    ctx.fillRect(0, H - 160, W, 160);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    const scrub = ctx.createLinearGradient(0, 0, 0, H);
+    scrub.addColorStop(0, hexAlpha(template.bgTop, 0.75));
+    scrub.addColorStop(0.35, 'rgba(0,0,0,0.15)');
+    scrub.addColorStop(0.7, 'rgba(0,0,0,0.2)');
+    scrub.addColorStop(1, hexAlpha(template.bgBot, 0.85));
+    ctx.fillStyle = scrub;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    ctx.globalAlpha = 0.35 + beatPulse * 0.35;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(18, 18, W - 36, H - 36);
+    ctx.strokeStyle = accent2;
+    ctx.strokeRect(28, 28, W - 56, H - 56);
+    ctx.restore();
+  }
+
+  ctx.fillStyle = accent;
+  ctx.font = film ? '600 18px Pretendard, sans-serif' : '800 26px Pretendard, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(film ? 'OSWAN' : '오스완', 36, film ? 58 : 56);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '700 20px Pretendard, sans-serif';
+  ctx.fillText(meta.nickname, 36, film ? 86 : 84);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = accent2;
+  ctx.font = '800 14px Pretendard, sans-serif';
+  ctx.fillText(template.moodLabel, W - 36, 56);
+
+  // kinetic intro
+  if (ms < 2400) {
+    const a = ms < 400 ? ms / 400 : ms > 2000 ? (2400 - ms) / 400 : 1;
+    const scale = 0.92 + beatPulse * 0.08;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.translate(W / 2, H * 0.42);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = accent;
+    ctx.font = film ? '800 48px Pretendard, sans-serif' : '900 56px Pretendard, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(film ? "TODAY'S SQUAT" : '오늘 스쿼트', 0, 0);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 64px Pretendard, sans-serif';
+    ctx.fillText(`${meta.targetReps}`, 0, 70);
+    ctx.restore();
+  }
+
+  // bottom score strip
+  ctx.fillStyle = film ? 'rgba(0,0,0,0.0)' : hexAlpha(accent, 0.12 + beatPulse * 0.1);
+  rr(ctx, 28, H - 210, W - 56, 100, 20);
+  ctx.fill();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '900 64px Pretendard, sans-serif';
+  ctx.fillText(String(shown), W / 2, H - 148);
+  ctx.fillStyle = accent;
+  ctx.font = '700 20px Pretendard, sans-serif';
+  ctx.fillText(`${meta.cleared ? 'CLEARED' : 'IN PROGRESS'}  ·  /${meta.targetReps}`, W / 2, H - 118);
+
+  // progress bar
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  rr(ctx, 40, H - 88, W - 80, 8, 4);
+  ctx.fill();
+  ctx.fillStyle = accent;
+  rr(ctx, 40, H - 88, (W - 80) * progress, 8, 4);
+  ctx.fill();
+
+  drawEndBadge(ctx, meta, ms, totalMs, accent);
+  drawHashtags(ctx, H - 48);
+  if (!film) drawVignette(ctx, 0.35);
+}
+
+/** Big diagonal stamp — viral thumbnail style */
+function drawStamp(
+  ctx: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  template: PrideTemplate,
+  meta: ComposeMeta,
+  ms: number,
+  totalMs: number,
+  beatPulse: number,
+  shown: number,
+  progress: number,
+) {
+  const { accent, accent2 } = template;
+  coverVideo(ctx, video, 0, 0, W, H);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.fillRect(0, 0, W, H);
+
+  // floating particles
+  ctx.save();
+  for (let i = 0; i < 22; i++) {
+    const life = (ms * 0.00035 + i / 22) % 1;
+    const x = ((Math.sin(i * 9.1) * 0.5 + 0.5) * W);
+    const y = H - life * (H + 60);
+    ctx.globalAlpha = (1 - life) * 0.7;
+    ctx.fillStyle = i % 2 ? accent : accent2;
+    ctx.beginPath();
+    ctx.arc(x, y, 3 + (i % 4), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // top chip
+  rr(ctx, 28, 40, 220, 48, 14);
+  ctx.fillStyle = hexAlpha(accent, 0.95);
+  ctx.fill();
+  ctx.fillStyle = '#0A0A0A';
+  ctx.font = '800 22px Pretendard, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('오늘 스쿼트 완료', 48, 64);
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '700 18px Pretendard, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(meta.nickname, W - 36, 70);
+
+  // giant diagonal stamp
+  const stampPop = 1 + beatPulse * 0.04;
+  ctx.save();
+  ctx.translate(W / 2, H * 0.48);
+  ctx.rotate((-18 * Math.PI) / 180);
+  ctx.scale(stampPop, stampPop);
+  ctx.strokeStyle = hexAlpha(accent, 0.9);
+  ctx.lineWidth = 10;
+  rr(ctx, -250, -70, 500, 140, 24);
+  ctx.stroke();
+  ctx.fillStyle = hexAlpha(accent, 0.18);
+  ctx.fill();
+  ctx.fillStyle = accent;
+  ctx.font = '900 72px Pretendard, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(meta.cleared ? 'OSWAN' : `${shown} REP`, 0, 0);
+  ctx.restore();
+
+  // bottom ticker
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, H - 150, W, 150);
+  ctx.fillStyle = '#0A0A0A';
+  ctx.font = '900 56px Pretendard, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${shown}`, 36, H - 78);
+  ctx.font = '800 22px Pretendard, sans-serif';
+  ctx.fillText(`/ ${meta.targetReps} 목표`, 36, H - 42);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = accent2;
+  ctx.font = '800 20px Pretendard, sans-serif';
+  ctx.fillText(Math.round(progress * 100) + '%', W - 36, H - 60);
+
+  drawEndBadge(ctx, meta, ms, totalMs, accent2);
+}
+
+/** Broadcast scoreboard strip */
+function drawScoreboard(
+  ctx: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  template: PrideTemplate,
+  meta: ComposeMeta,
+  ms: number,
+  totalMs: number,
+  beatPulse: number,
+  shown: number,
+  progress: number,
+) {
+  const { accent, accent2 } = template;
+  drawBg(ctx, template);
+
+  // live camera window
+  const camTop = 200;
+  const camH = H * 0.5;
+  ctx.save();
+  rr(ctx, 24, camTop, W - 48, camH, 20);
+  ctx.clip();
+  coverVideo(ctx, video, 24, camTop, W - 48, camH);
+  ctx.restore();
+  ctx.strokeStyle = hexAlpha(accent, 0.5 + beatPulse * 0.3);
+  ctx.lineWidth = 3;
+  rr(ctx, 24, camTop, W - 48, camH, 20);
+  ctx.stroke();
+
+  // LIVE badge
+  rr(ctx, 40, camTop + 20, 72, 28, 8);
+  ctx.fillStyle = '#FF3B3B';
+  ctx.fill();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '800 14px Pretendard, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('LIVE', 76, camTop + 34);
+  ctx.textBaseline = 'alphabetic';
+
+  // header board
+  ctx.fillStyle = hexAlpha(accent, 0.12);
+  rr(ctx, 24, 36, W - 48, 140, 18);
+  ctx.fill();
+  ctx.fillStyle = accent;
+  ctx.font = '800 18px Pretendard, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('OSWAN SCOREBOARD', 44, 68);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '700 28px Pretendard, sans-serif';
+  ctx.fillText(meta.nickname, 44, 108);
+  ctx.fillStyle = '#A1A1A1';
+  ctx.font = '600 16px Pretendard, sans-serif';
+  ctx.fillText(meta.cleared ? '미션 클리어' : '진행 중', 44, 140);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = accent;
+  ctx.font = '900 64px Pretendard, sans-serif';
+  ctx.fillText(String(shown), W - 44, 120);
+  ctx.fillStyle = accent2;
+  ctx.font = '700 18px Pretendard, sans-serif';
+  ctx.fillText(`GOAL ${meta.targetReps}`, W - 44, 150);
+
+  // lower stats row
+  const rowY = camTop + camH + 36;
+  const cellW = (W - 48 - 16) / 2;
+  drawStatCell(ctx, 24, rowY, cellW, 100, 'REPS', String(shown), accent);
+  drawStatCell(ctx, 24 + cellW + 16, rowY, cellW, 100, 'TARGET', String(meta.targetReps), accent2);
+
+  // progress
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  rr(ctx, 24, rowY + 120, W - 48, 14, 7);
+  ctx.fill();
+  ctx.fillStyle = accent;
+  rr(ctx, 24, rowY + 120, (W - 48) * progress, 14, 7);
+  ctx.fill();
+
+  if (ms < 1800) {
+    const a = ms < 300 ? ms / 300 : ms > 1400 ? (1800 - ms) / 400 : 1;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.fillStyle = hexAlpha(accent, 0.92);
+    ctx.font = '900 40px Pretendard, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('COUNT IT UP', W / 2, camTop + camH / 2);
+    ctx.restore();
+  }
+
+  drawEndBadge(ctx, meta, ms, totalMs, accent);
+  drawHashtags(ctx);
+  drawVignette(ctx, 0.4);
+}
+
+function drawStatCell(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  label: string,
+  value: string,
+  accent: string,
+) {
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  rr(ctx, x, y, w, h, 16);
+  ctx.fill();
+  ctx.fillStyle = '#A1A1A1';
+  ctx.font = '700 14px Pretendard, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(label, x + 18, y + 32);
+  ctx.fillStyle = accent;
+  ctx.font = '900 40px Pretendard, sans-serif';
+  ctx.fillText(value, x + 18, y + 78);
+}
+
+function drawProgressRing(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  progress: number,
+  accent: string,
+) {
   const r = 26;
-  const cx = padX + 40;
-  const cy = top + 40;
   ctx.beginPath();
   ctx.strokeStyle = 'rgba(255,255,255,0.2)';
   ctx.lineWidth = 4;
@@ -303,49 +671,6 @@ function drawFrame(
   ctx.strokeStyle = accent;
   ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
   ctx.stroke();
-
-  ctx.save();
-  const flashA = 0.12 + beatPulse * 0.28;
-  const gt = ctx.createLinearGradient(0, 0, 0, 120);
-  gt.addColorStop(0, hexAlpha(accent, flashA));
-  gt.addColorStop(1, hexAlpha(accent, 0));
-  ctx.fillStyle = gt;
-  ctx.fillRect(0, 0, W, 120);
-  const gb = ctx.createLinearGradient(0, H - 140, 0, H);
-  gb.addColorStop(0, hexAlpha(accent, 0));
-  gb.addColorStop(1, hexAlpha(accent, flashA));
-  ctx.fillStyle = gb;
-  ctx.fillRect(0, H - 140, W, 140);
-  ctx.restore();
-
-  if (ms > totalMs - 2800) {
-    const local = (ms - (totalMs - 2800)) / 2800;
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, local * 2);
-    ctx.translate(W / 2, H - 210);
-    ctx.rotate((-8 * Math.PI) / 180);
-    rr(ctx, -110, -36, 220, 72, 16);
-    ctx.fillStyle = meta.cleared ? accent : '#FF5A5A';
-    ctx.fill();
-    ctx.fillStyle = '#0A0A0A';
-    ctx.font = '800 34px Pretendard, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(meta.cleared ? '오스완!' : '다시!', 0, 2);
-    ctx.restore();
-  }
-
-  ctx.fillStyle = '#6E6E6E';
-  ctx.font = '600 14px Pretendard, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText('#오스완  #오늘스쿼트완료  #스쿼트챌린지', W / 2, H - 36);
-
-  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.75);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.45)');
-  ctx.fillStyle = vig;
-  ctx.fillRect(0, 0, W, H);
 }
 
 export function prideFileFromBlob(blob: Blob, templateId: string): File {

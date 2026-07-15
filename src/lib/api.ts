@@ -21,6 +21,16 @@ export function backendStatus(): 'off' | 'on' {
   return isSupabaseConfigured ? 'on' : 'off';
 }
 
+let lastSyncOk = true;
+
+export function lastBackendSyncOk(): boolean {
+  return lastSyncOk;
+}
+
+function noteSync(ok: boolean) {
+  lastSyncOk = ok;
+}
+
 export async function syncSoftUser(user: SoftUser): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
@@ -31,7 +41,11 @@ export async function syncSoftUser(user: SoftUser): Promise<void> {
     platform: 'web',
     app_version: '1.0.0',
   });
-  if (error) console.warn('[oswan] syncSoftUser', error.message);
+  if (error) {
+    noteSync(false);
+    return;
+  }
+  noteSync(true);
 }
 
 export async function syncSession(session: SessionRecord): Promise<void> {
@@ -51,7 +65,11 @@ export async function syncSession(session: SessionRecord): Promise<void> {
     challenge_id: session.challengeId ?? null,
     source: session.challengeId ? 'challenge' : 'free',
   });
-  if (error) console.warn('[oswan] syncSession', error.message);
+  if (error) {
+    noteSync(false);
+    return;
+  }
+  noteSync(true);
 }
 
 export async function syncChallenge(c: Challenge): Promise<void> {
@@ -73,8 +91,13 @@ export async function syncChallenge(c: Challenge): Promise<void> {
     from_session_id: c.fromSessionId ?? null,
     to_session_id: c.toSessionId ?? null,
     created_at: c.createdAt,
+    // After migration 002: stake_label: c.stakeLabel ?? null,
   });
-  if (error) console.warn('[oswan] syncChallenge', error.message);
+  if (error) {
+    noteSync(false);
+    return;
+  }
+  noteSync(true);
 }
 
 export async function fetchLeaderboard(
@@ -86,9 +109,10 @@ export async function fetchLeaderboard(
   const view = period === 'today' ? 'leaderboard_today' : 'leaderboard_week';
   const { data, error } = await sb.from(view).select('*').order('rank', { ascending: true }).limit(limit);
   if (error) {
-    console.warn('[oswan] fetchLeaderboard', error.message);
+    noteSync(false);
     return [];
   }
+  noteSync(true);
   return (data ?? []) as LeaderboardRow[];
 }
 
@@ -105,9 +129,10 @@ export async function fetchMyWeekStats(softUserId: string): Promise<DayStat[]> {
     .gte('day', fromDay)
     .order('day', { ascending: true });
   if (error) {
-    console.warn('[oswan] fetchMyWeekStats', error.message);
+    noteSync(false);
     return [];
   }
+  noteSync(true);
   return (data ?? []).map((r) => ({
     day: String(r.day),
     reps_sum: Number(r.reps_sum),
@@ -137,5 +162,6 @@ export async function fetchRemoteChallenge(id: string): Promise<Challenge | null
     fromSessionId: data.from_session_id ?? undefined,
     toSessionId: data.to_session_id ?? undefined,
     createdAt: data.created_at,
+    stakeLabel: data.stake_label ?? undefined,
   };
 }

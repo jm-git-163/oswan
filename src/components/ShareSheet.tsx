@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { BrandMark } from './BrandMark';
 import {
   isKakaoInAppBrowser,
@@ -7,14 +7,14 @@ import {
   openInExternalBrowser,
 } from '../lib/browser';
 import type { Challenge } from '../lib/types';
-import { challengeShareUrl, challengeShareUrlLabel } from '../lib/storage';
+import { challengeShareUrl } from '../lib/storage';
 import {
   canNativeShare,
+  challengeShareCaption,
   challengeShareText,
   openKakaoWithCopiedText,
   openSmsShare,
   openTelegramShare,
-  renderChallengeCardBlob,
   shareChallengeInvite,
 } from '../lib/share';
 
@@ -24,68 +24,38 @@ type Props = {
   onClose: () => void;
 };
 
-/** Thumbnail-first share with short clean invite URL (no base64 junk). */
+/**
+ * Share challenge as URL → messenger OG thumbnail card (tappable).
+ * No image-only share (photos are not links).
+ */
 export function ShareSheet({ open, challenge, onClose }: Props) {
-  const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [fileReady, setFileReady] = useState(false);
-  const fileRef = useRef<File | null>(null);
   const native = canNativeShare();
   const inApp = isLikelyInAppBrowser();
   const kakao = isKakaoInAppBrowser();
 
-  useEffect(() => {
-    if (!open) return;
-    let alive = true;
-    let objectUrl: string | null = null;
-    fileRef.current = null;
-    setFileReady(false);
-    setStatus(null);
-    void (async () => {
-      try {
-        const blob = await renderChallengeCardBlob(challenge);
-        const file = new File([blob], `oswan-${challenge.targetReps}.png`, { type: 'image/png' });
-        objectUrl = URL.createObjectURL(blob);
-        if (!alive) return;
-        fileRef.current = file;
-        setFileReady(true);
-        setPreview(objectUrl);
-      } catch {
-        if (alive) setPreview('/og-challenge.png');
-      }
-    })();
-    return () => {
-      alive = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [open, challenge]);
-
   if (!open) return null;
 
   const url = challengeShareUrl(challenge);
-  const text = challengeShareText(challenge, url);
-  const label = challengeShareUrlLabel(challenge);
+  const caption = challengeShareCaption(challenge);
+  const smsBody = challengeShareText(challenge, url);
 
-  /** Default: thumbnail + short link together */
   const sendChallenge = () => {
     setBusy(true);
     setStatus(null);
     void (async () => {
       if (inApp) {
-        const copied = await navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+        const copied = await navigator.clipboard.writeText(url).then(() => true).catch(() => false);
         setBusy(false);
         setStatus(
           copied
-            ? '카톡 안에서는 공유가 막혀요. 문구를 복사했어요 — Chrome에서 열고 다시 보내 주세요.'
+            ? '카톡 안에서는 공유가 막혀요. 링크를 복사했어요 — Chrome에서 열고 다시 보내 주세요. 붙여넣으면 썸네일 카드로 보여요.'
             : '카톡 안에서는 공유가 막혀요. 「Chrome에서 열기」를 눌러 주세요.',
         );
         return;
       }
-      const r = await shareChallengeInvite(challenge, {
-        preparedFile: fileRef.current,
-        preferImage: true,
-      });
+      const r = await shareChallengeInvite(challenge);
       setBusy(false);
       if (r === 'shared') {
         onClose();
@@ -95,11 +65,12 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
         setStatus('공유가 취소됐어요. 다시 눌러 주세요.');
         return;
       }
-      const k = await openKakaoWithCopiedText(text);
+      // Fallback: URL only → Kakao paste builds OG card
+      const k = await openKakaoWithCopiedText(url);
       setStatus(
         k === 'opened'
-          ? '짧은 링크를 복사했고 카카오톡을 열었어요. 채팅에 붙여넣기 하세요.'
-          : '짧은 링크를 복사했어요. 카톡에 붙여넣기 하세요.',
+          ? '링크를 복사했고 카카오톡을 열었어요. 채팅에 붙여넣으면 썸네일 카드가 떠요.'
+          : '링크를 복사했어요. 카톡에 붙여넣으면 썸네일 카드가 떠요.',
       );
     })();
   };
@@ -142,7 +113,7 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
           <div>
             <div style={{ fontWeight: 800, fontSize: 18 }}>도전장 보내기</div>
             <div className="meta" style={{ color: 'var(--accent)', fontWeight: 600 }}>
-              썸네일 + 짧은 링크
+              썸네일 카드 · 누르면 도전 연결
             </div>
           </div>
         </div>
@@ -166,42 +137,43 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
           </div>
         )}
 
-        {preview && (
-          <button
-            type="button"
-            onClick={sendChallenge}
-            disabled={busy || !fileReady}
+        <button
+          type="button"
+          onClick={sendChallenge}
+          disabled={busy}
+          style={{
+            display: 'block',
+            width: '100%',
+            padding: 0,
+            border: '1px solid rgba(200,245,74,0.35)',
+            borderRadius: 16,
+            overflow: 'hidden',
+            marginBottom: 12,
+            background: '#111',
+            textAlign: 'left',
+          }}
+        >
+          <img
+            src="/og-challenge.png"
+            alt="도전장 썸네일 미리보기"
             style={{
-              display: 'block',
               width: '100%',
-              padding: 0,
-              border: '1px solid rgba(200,245,74,0.35)',
-              borderRadius: 16,
-              overflow: 'hidden',
-              marginBottom: 12,
-              background: '#111',
+              aspectRatio: '1.91/1',
+              objectFit: 'cover',
+              display: 'block',
             }}
-          >
-            <img
-              src={preview}
-              alt="도전장 썸네일 — 누르면 공유"
-              style={{
-                width: '100%',
-                aspectRatio: '4/5',
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
-          </button>
-        )}
+          />
+          <div style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.55)' }}>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>오스완 도전장</div>
+            <div className="meta" style={{ marginTop: 4, fontSize: 12 }}>
+              {challenge.fromNickname} · {challenge.targetReps}개 · 눌러서 수락
+            </div>
+          </div>
+        </button>
 
-        <p style={{ fontWeight: 700, marginBottom: 4 }}>
-          {challenge.fromNickname} · {challenge.targetReps}개 도전
-        </p>
-        <p className="meta" style={{ marginBottom: 12, fontSize: 13 }}>
-          썸네일을 누르거나 아래 버튼으로 보내세요.
-          <br />
-          <span style={{ color: 'var(--accent)' }}>{label}</span>
+        <p className="meta" style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
+          카톡·메신저에는 <strong style={{ color: 'var(--accent)' }}>링크 주소 대신 썸네일 카드</strong>로
+          보여요. 상대가 카드를 누르면 도전으로 연결됩니다.
         </p>
 
         {status && (
@@ -213,6 +185,7 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
               color: 'var(--accent)',
               border: '1px solid rgba(200,245,74,0.35)',
               padding: 12,
+              lineHeight: 1.45,
             }}
           >
             {status}
@@ -220,13 +193,13 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
         )}
 
         <div style={{ display: 'grid', gap: 8 }}>
-          <button className="cta-primary" disabled={busy || !fileReady} onClick={sendChallenge}>
-            {busy ? '여는 중…' : native ? '카톡·메신저로 도전장 보내기' : '링크 복사 후 카톡 열기'}
+          <button className="cta-primary" disabled={busy} onClick={sendChallenge}>
+            {busy ? '여는 중…' : native ? '카톡·메신저로 도전 보내기' : '링크 복사 후 카톡 열기'}
           </button>
           <button
             className="cta-secondary"
             onClick={() => {
-              openSmsShare(text);
+              openSmsShare(smsBody);
             }}
           >
             문자로 보내기
@@ -234,7 +207,7 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
           <button
             className="cta-secondary"
             onClick={() => {
-              openTelegramShare(url, text);
+              openTelegramShare(url, caption);
             }}
           >
             텔레그램으로 보내기
@@ -242,10 +215,12 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
           <button
             className="cta-secondary"
             onClick={() =>
-              void navigator.clipboard.writeText(url).then(() => setStatus('짧은 링크를 복사했어요.'))
+              void navigator.clipboard.writeText(url).then(() =>
+                setStatus('링크를 복사했어요. 카톡에 붙여넣으면 썸네일 카드로 보여요.'),
+              )
             }
           >
-            짧은 링크만 복사
+            링크 복사 (붙여넣기용)
           </button>
 
           {NATIVE_APP.available ? (

@@ -53,6 +53,36 @@ export function updateNickname(nickname: string): SoftUser | null {
   return next;
 }
 
+/** Wipe local Soft ID + sessions/challenges/prefs (Play deletion / reset). */
+export function clearLocalAccount(): void {
+  try {
+    localStorage.removeItem(KEYS.user);
+    localStorage.removeItem(KEYS.sessions);
+    localStorage.removeItem(KEYS.challenges);
+    localStorage.removeItem('oswan.bodyWeightKg');
+    localStorage.removeItem('oswan.coachPrefs');
+    localStorage.removeItem('oswan.coachPrefs.v2');
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Bind a recipient SoftUser before accepting a challenge.
+ * Never reuse the sender's Soft ID — sessions must stay separate.
+ */
+export function ensureChallengeRecipient(
+  nickname: string,
+  fromSoftUserId: string,
+): SoftUser {
+  const name = nickname.trim().slice(0, 12) || '스쿼터';
+  const current = getSoftUser();
+  if (!current || current.id === fromSoftUserId) {
+    return createSoftUser(name);
+  }
+  return updateNickname(name) ?? current;
+}
+
 export function listSessions(): SessionRecord[] {
   return read<SessionRecord[]>(KEYS.sessions, []).sort(
     (a, b) => +new Date(b.endedAt) - +new Date(a.endedAt),
@@ -156,8 +186,10 @@ export function createChallenge(input: {
   fromNickname: string;
   targetReps: number;
   deadlineHours?: number;
+  stakeLabel?: string;
 }): Challenge {
   const hours = input.deadlineHours ?? 24;
+  const stake = input.stakeLabel?.trim().slice(0, 28);
   const challenge: Challenge = {
     id: uid(),
     fromSoftUserId: input.fromSoftUserId,
@@ -167,6 +199,7 @@ export function createChallenge(input: {
     status: 'open',
     ruleVersion: 'hss-v3',
     winMode: 'clear_target',
+    ...(stake ? { stakeLabel: stake } : {}),
     createdAt: new Date().toISOString(),
   };
   write(KEYS.challenges, [challenge, ...listChallenges()]);
@@ -176,13 +209,46 @@ export function createChallenge(input: {
   return challenge;
 }
 
-export function upsertChallenge(challenge: Challenge): void {
+export function upsertChallenge(challenge: Challenge, opts?: { sync?: boolean }): void {
   const all = listChallenges();
   const idx = all.findIndex((c) => c.id === challenge.id);
   if (idx >= 0) all[idx] = challenge;
   else all.unshift(challenge);
   write(KEYS.challenges, all);
+  if (opts?.sync === false) return;
   fire(syncChallenge(challenge));
+}
+
+/** Prefer fresher membership / clear flags from remote without wiping local seed. */
+export function mergeChallenge(local: Challenge | null, remote: Challenge | null): Challenge | null {
+  if (!local && !remote) return null;
+  if (!local) return remote;
+  if (!remote) return local;
+
+  const statusRank: Record<Challenge['status'], number> = {
+    open: 0,
+    accepted: 1,
+    completed: 2,
+    expired: 3,
+  };
+  const status =
+    statusRank[remote.status] >= statusRank[local.status] ? remote.status : local.status;
+
+  return {
+    ...local,
+    ...remote,
+    status,
+    toSoftUserId: remote.toSoftUserId ?? local.toSoftUserId,
+    toNickname: remote.toNickname ?? local.toNickname,
+    fromCleared: remote.fromCleared ?? local.fromCleared,
+    toCleared: remote.toCleared ?? local.toCleared,
+    fromSessionId: remote.fromSessionId ?? local.fromSessionId,
+    toSessionId: remote.toSessionId ?? local.toSessionId,
+    fromNickname: remote.fromNickname || local.fromNickname,
+    targetReps: remote.targetReps || local.targetReps,
+    deadlineAt: remote.deadlineAt || local.deadlineAt,
+    stakeLabel: remote.stakeLabel || local.stakeLabel,
+  };
 }
 
 export function acceptChallenge(
@@ -193,10 +259,11 @@ export function acceptChallenge(
   const c = getChallenge(id);
   if (!c || c.status === 'expired' || c.status === 'completed') return null;
   if (c.fromSoftUserId === softUserId) return c;
+  if (c.toSoftUserId && c.toSoftUserId !== softUserId) return null;
   const next: Challenge = {
     ...c,
     toSoftUserId: softUserId,
-    toNickname: nickname,
+    toNickname: nickname.trim().slice(0, 12) || nickname,
     status: 'accepted',
   };
   upsertChallenge(next);
@@ -213,16 +280,27 @@ export function completeChallenge(
   if (!c) return null;
 
   let next: Challenge = { ...c };
+
   if (softUserId === c.fromSoftUserId) {
     next = { ...next, fromCleared: cleared, fromSessionId: sessionId };
   } else if (softUserId === c.toSoftUserId) {
     next = { ...next, toCleared: cleared, toSessionId: sessionId };
+  } else if (!c.toSoftUserId && softUserId !== c.fromSoftUserId) {
+    // Safety: first challenge session from non-sender binds as recipient
+    const nick = getSoftUser()?.nickname ?? '도전러';
+    next = {
+      ...next,
+      toSoftUserId: softUserId,
+      toNickname: nick,
+      status: next.status === 'open' ? 'accepted' : next.status,
+      toCleared: cleared,
+      toSessionId: sessionId,
+    };
   }
 
   if (next.toSoftUserId && next.fromCleared !== undefined && next.toCleared !== undefined) {
     next = { ...next, status: 'completed' };
   } else if (next.status === 'open' && softUserId === c.fromSoftUserId) {
-    // creator finished seed session — keep open for invitee
     next = { ...next, status: 'open' };
   }
 
@@ -232,9 +310,28 @@ export function completeChallenge(
 
 export function importChallengeFromPayload(payload: Challenge): Challenge {
   const existing = getChallenge(payload.id);
-  if (existing) return existing;
-  upsertChallenge(payload);
-  return payload;
+  const merged = mergeChallenge(existing, payload) ?? payload;
+  upsertChallenge(merged, { sync: !existing });
+  return merged;
+}
+
+/** Persist sync before sharing so bare /c/:id works for recipients. */
+export async function createChallengeAndSync(input: {
+  fromSoftUserId: string;
+  fromNickname: string;
+  targetReps: number;
+  deadlineHours?: number;
+  stakeLabel?: string;
+}): Promise<Challenge> {
+  const c = createChallenge(input);
+  try {
+    const user = getSoftUser();
+    if (user) await syncSoftUser(user);
+    await syncChallenge(c);
+  } catch (e) {
+    console.warn('[oswan] createChallengeAndSync', e);
+  }
+  return c;
 }
 
 /** Clean invite URL — no base64 payload (looks bad in Kakao). */
@@ -247,6 +344,9 @@ export function challengeShareUrl(challenge: Challenge): string {
   if (challenge.deadlineAt) {
     url.searchParams.set('dl', challenge.deadlineAt);
   }
+  if (challenge.stakeLabel) {
+    url.searchParams.set('s', challenge.stakeLabel);
+  }
   return url.toString();
 }
 
@@ -258,7 +358,13 @@ export function challengeShareUrlLabel(challenge: Challenge): string {
 /** Rebuild invite from compact query when recipient has no local/remote copy. */
 export function challengeFromCompact(
   id: string,
-  params: { n: string | null; r: string | null; f: string | null; dl: string | null },
+  params: {
+    n: string | null;
+    r: string | null;
+    f: string | null;
+    dl: string | null;
+    s?: string | null;
+  },
 ): Challenge | null {
   if (!params.n || !params.r || !params.f) return null;
   const targetReps = Math.max(1, Number(params.r) || 30);
@@ -266,6 +372,7 @@ export function challengeFromCompact(
     params.dl && !Number.isNaN(+new Date(params.dl))
       ? params.dl
       : new Date(Date.now() + 24 * 3600_000).toISOString();
+  const stake = params.s?.trim().slice(0, 28);
   return {
     id,
     fromSoftUserId: params.f,
@@ -275,6 +382,7 @@ export function challengeFromCompact(
     status: 'open',
     ruleVersion: 'hss-v3',
     winMode: 'clear_target',
+    ...(stake ? { stakeLabel: stake } : {}),
     createdAt: new Date().toISOString(),
   };
 }

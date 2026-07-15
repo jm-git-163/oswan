@@ -14,7 +14,7 @@ export function PridePage() {
   const user = useAppStore((s) => s.user)!;
   const result = useAppStore((s) => s.lastResult);
   const rawBlob = useAppStore((s) => s.lastRawVideo);
-  const [templateId, setTemplateId] = useState<PrideTemplateId>('oswan-clear');
+  const [templateId, setTemplateId] = useState<PrideTemplateId>('viral-stamp');
   const [phase, setPhase] = useState<Phase>('pick');
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
@@ -92,8 +92,7 @@ export function PridePage() {
       </div>
 
       <p className="meta" style={{ marginTop: 16, lineHeight: 1.5, fontSize: 14 }}>
-        스쿼트 영상에 템플릿·BGM·HUD를 입혀 SNS용 세로 영상을 만들어요. 서버 업로드 없이 기기에서만
-        합성됩니다.
+        풀화면·스탬프·스코어보드처럼 피드에서 멈추게 만드는 템플릿을 골라요. 합성은 기기에서만.
       </p>
 
       {!rawBlob && (
@@ -130,6 +129,9 @@ export function PridePage() {
                   </div>
                   <div className="meta" style={{ marginTop: 6 }}>
                     {t.subtitle}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: t.accent, lineHeight: 1.4 }}>
+                    {t.hook}
                   </div>
                 </button>
               );

@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrandMark } from '../components/BrandMark';
+import { SessionEstimatesCard } from '../components/SessionEstimates';
 import { ShareSheet } from '../components/ShareSheet';
+import { estimateSession } from '../lib/estimates';
 import { resultShareText, sharePlainText } from '../lib/share';
-import { createChallenge, getChallenge } from '../lib/storage';
+import { createChallengeAndSync, getChallenge } from '../lib/storage';
 import { useAppStore } from '../store';
 import type { Challenge } from '../lib/types';
 
@@ -13,6 +15,7 @@ export function ResultPage() {
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
   const [sheetChallenge, setSheetChallenge] = useState<Challenge | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const secs = useMemo(() => {
     if (!result) return 0;
@@ -30,21 +33,40 @@ export function ResultPage() {
     );
   }
 
+  const challenge = result.challengeId ? getChallenge(result.challengeId) : null;
+
   const shareNative = async () => {
-    const text = resultShareText(user.nickname, result.reps, result.targetReps, result.cleared);
+    const est = estimateSession(result.reps, result.durationMs);
+    const text = resultShareText(
+      user.nickname,
+      result.reps,
+      result.targetReps,
+      result.cleared,
+      est,
+    );
     await sharePlainText('오스완 · 오늘 스쿼트 완료', text);
   };
 
-  const sendChallenge = () => {
-    const c = createChallenge({
-      fromSoftUserId: user.id,
-      fromNickname: user.nickname,
-      targetReps: result.targetReps,
-    });
-    setSheetChallenge(c);
+  const nudgeChallenge = () => {
+    if (challenge) {
+      setSheetChallenge(challenge);
+      return;
+    }
+    setSharing(true);
+    void (async () => {
+      const c = await createChallengeAndSync({
+        fromSoftUserId: user.id,
+        fromNickname: user.nickname,
+        targetReps: result.targetReps,
+      });
+      setSharing(false);
+      setSheetChallenge(c);
+    })();
   };
 
-  const challenge = result.challengeId ? getChallenge(result.challengeId) : null;
+  const retryHref = challenge
+    ? `/session?target=${result.targetReps}&challenge=${challenge.id}`
+    : `/session?target=${result.targetReps}`;
 
   return (
     <div className="page" style={{ minHeight: '100dvh', paddingBottom: 40 }}>
@@ -97,7 +119,10 @@ export function ResultPage() {
           </div>
         </div>
 
-        <div className="meta">목표 개수 채우면 오늘 스쿼트 완료.</div>
+        <SessionEstimatesCard reps={result.reps} durationMs={result.durationMs} />
+        <div className="meta" style={{ marginTop: 14 }}>
+          목표 개수 채우면 오늘 스쿼트 완료.
+        </div>
       </div>
 
       {challenge && (
@@ -107,20 +132,36 @@ export function ResultPage() {
             {challenge.targetReps}개 · {challenge.fromNickname}
             {challenge.toNickname ? ` ↔ ${challenge.toNickname}` : ''}
           </div>
+          <p className="meta" style={{ marginTop: 8, fontSize: 12, lineHeight: 1.4 }}>
+            {challenge.fromCleared === true ? '✓' : '·'} {challenge.fromNickname}
+            {'  '}
+            {challenge.toCleared === true ? '✓' : '·'} {challenge.toNickname || '상대'}
+          </p>
         </div>
       )}
 
       <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
-        <button className="cta-primary" onClick={() => void shareNative()}>
-          결과 공유
+        {challenge ? (
+          <>
+            <button className="cta-primary" onClick={() => navigate(`/c/${challenge.id}`)}>
+              도전 현황 보기
+            </button>
+            <button className="cta-secondary" disabled={sharing} onClick={nudgeChallenge}>
+              {sharing ? '준비 중…' : '상대에게 도전장 다시 보내기'}
+            </button>
+          </>
+        ) : (
+          <button className="cta-primary" disabled={sharing} onClick={nudgeChallenge}>
+            {sharing ? '준비 중…' : '같은 개수로 친구에게 도전'}
+          </button>
+        )}
+        <button className="cta-secondary" onClick={() => void shareNative()}>
+          결과 문구 공유
         </button>
         <button className="cta-secondary" onClick={() => navigate('/pride')}>
-          영상으로 자랑 (선택)
+          영상으로 자랑 · 템플릿 저장/공유 (선택)
         </button>
-        <button className="cta-secondary" onClick={sendChallenge}>
-          같은 개수로 도전장
-        </button>
-        <button className="cta-secondary" onClick={() => navigate(`/session?target=${result.targetReps}`)}>
+        <button className="cta-secondary" onClick={() => navigate(retryHref)}>
           다시 하기
         </button>
         <button className="cta-secondary" onClick={() => navigate('/')}>

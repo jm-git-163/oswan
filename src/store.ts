@@ -4,6 +4,7 @@ import { getSoftUser } from './lib/storage';
 
 type AppState = {
   user: SoftUser | null;
+  hydrated: boolean;
   hydrate: () => void;
   setUser: (u: SoftUser | null) => void;
   lastResult: {
@@ -22,7 +23,8 @@ type AppState = {
 
 export const useAppStore = create<AppState>((set) => ({
   user: null,
-  hydrate: () => set({ user: getSoftUser() }),
+  hydrated: false,
+  hydrate: () => set({ user: getSoftUser(), hydrated: true }),
   setUser: (user) => set({ user }),
   lastResult: null,
   setLastResult: (lastResult) => set({ lastResult }),

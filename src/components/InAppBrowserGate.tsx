@@ -18,6 +18,10 @@ export function InAppBrowserGate({ children }: { children: React.ReactNode }) {
   const [iosHint, setIosHint] = useState<string | null>(null);
 
   useEffect(() => {
+    if (loc.pathname === '/privacy') {
+      setShow(false);
+      return;
+    }
     setShow(isLikelyInAppBrowser());
   }, [loc.pathname]);
 
@@ -69,6 +73,11 @@ export function InAppBrowserGate({ children }: { children: React.ReactNode }) {
             {iosHint}
           </p>
         )}
+        {onChallenge && (
+          <p className="meta" style={{ marginTop: 12, fontSize: 13, lineHeight: 1.45 }}>
+            외부 브라우저에서 열어야 닉네임 수락 → 카메라 스쿼트가 원활해요.
+          </p>
+        )}
         {NATIVE_APP.available ? (
           <a
             className="cta-secondary"
@@ -82,13 +91,24 @@ export function InAppBrowserGate({ children }: { children: React.ReactNode }) {
             곧 오스완 앱이 나오면 앱 설치 후 바로 시작할 수 있어요.
           </p>
         )}
-        <button
-          className="cta-secondary"
-          style={{ marginTop: 10 }}
-          onClick={() => setShow(false)}
-        >
-          일단 여기서 계속 (기능 제한 가능)
-        </button>
+        {!onChallenge && (
+          <button
+            className="cta-secondary"
+            style={{ marginTop: 10 }}
+            onClick={() => setShow(false)}
+          >
+            일단 여기서 계속 (기능 제한 가능)
+          </button>
+        )}
+        {onChallenge && (
+          <button
+            className="cta-secondary"
+            style={{ marginTop: 10 }}
+            onClick={() => setShow(false)}
+          >
+            제한을 이해하고 여기서 계속
+          </button>
+        )}
       </div>
     </>
   );

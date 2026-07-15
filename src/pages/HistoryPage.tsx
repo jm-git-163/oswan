@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { backendStatus, fetchMyWeekStats, type DayStat } from '../lib/api';
+import { estimateSession, estimateSessionsTotal } from '../lib/estimates';
 import { last7Days, listSessions } from '../lib/storage';
 import { useAppStore } from '../store';
 
@@ -36,6 +38,13 @@ export function HistoryPage() {
     () => listSessions().filter((s) => s.softUserId === user.id).slice(0, 30),
     [user.id],
   );
+  const weekSessions = useMemo(() => {
+    const start = new Date();
+    start.setDate(start.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+    return sessions.filter((s) => +new Date(s.endedAt) >= +start);
+  }, [sessions]);
+  const weekEst = useMemo(() => estimateSessionsTotal(weekSessions), [weekSessions]);
   const max = Math.max(1, ...bars.map((b) => b.reps));
 
   return (
@@ -43,8 +52,49 @@ export function HistoryPage() {
       <h1 className="page-title">기록</h1>
       <p className="meta" style={{ marginBottom: 24 }}>
         최근 7일
-        {backend === 'on' ? ' · Supabase 동기화' : ' · 로컬'}
+        {backend === 'on' ? ' · 동기화됨' : ' · 로컬'}
+        {' · '}
+        <Link to="/ranking" className="mute-link">
+          랭킹
+        </Link>
       </p>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="meta">최근 7일 추정</div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 10,
+            marginTop: 12,
+            textAlign: 'center',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--accent)' }}>
+              약 {weekEst.kcal}
+            </div>
+            <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
+              kcal
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>{weekEst.lowerBody}</div>
+            <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
+              하체 평균
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>{weekEst.core}</div>
+            <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
+              코어 평균
+            </div>
+          </div>
+        </div>
+        <p className="meta" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.4 }}>
+          칼로리는 합산, 하체·코어는 세션 평균(0~100). 하루 목표 감각: 하체 55+ · 코어 40+
+        </p>
+      </div>
 
       <div
         className="card"
@@ -77,22 +127,33 @@ export function HistoryPage() {
 
       <div style={{ display: 'grid', gap: 8 }}>
         {sessions.length === 0 && <div className="card meta">아직 세션이 없어요.</div>}
-        {sessions.map((s) => (
-          <div key={s.id} className="card" style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ fontWeight: 700 }}>
-                {s.reps}
-                <span className="meta"> / {s.targetReps}</span>
+        {sessions.map((s) => {
+          const est = estimateSession(s.reps, s.durationMs);
+          return (
+            <div key={s.id} className="card" style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontWeight: 700 }}>
+                  {s.reps}
+                  <span className="meta"> / {s.targetReps}</span>
+                </div>
+                <div className="meta" style={{ marginTop: 4 }}>
+                  {new Date(s.endedAt).toLocaleString('ko-KR')}
+                </div>
+                <div className="meta" style={{ fontSize: 12, marginTop: 6 }}>
+                  약 {est.kcal} kcal · 하체 {est.lowerBody} · 코어 {est.core}
+                </div>
               </div>
-              <div className="meta" style={{ marginTop: 4 }}>
-                {new Date(s.endedAt).toLocaleString('ko-KR')}
+              <div
+                style={{
+                  color: s.cleared ? 'var(--accent)' : 'var(--text-tertiary)',
+                  fontWeight: 700,
+                }}
+              >
+                {s.cleared ? '오스완' : '미달'}
               </div>
             </div>
-            <div style={{ color: s.cleared ? 'var(--accent)' : 'var(--text-tertiary)', fontWeight: 700 }}>
-              {s.cleared ? '오스완' : '미달'}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

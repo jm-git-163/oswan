@@ -75,7 +75,23 @@ export async function openInExternalBrowser(url?: string): Promise<OpenExternalR
   }
 
   if (isIOS) {
+    // Kakao in-app: try official external browser handoff, then copy fallback
+    if (isKakaoInAppBrowser()) {
+      try {
+        window.location.href =
+          `kakaotalk://web/openExternal?url=${encodeURIComponent(href)}`;
+        return { method: 'navigate' };
+      } catch {
+        /* fall through */
+      }
+    }
     const copied = await copyTextToClipboard(href);
+    // Also try opening Safari via https (may stay in WebView on some builds)
+    try {
+      window.open(href, '_blank', 'noopener,noreferrer');
+    } catch {
+      /* */
+    }
     return { method: 'ios-copy', copied };
   }
 

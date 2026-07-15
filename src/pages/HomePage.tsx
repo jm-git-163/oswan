@@ -1,9 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BrandHeader } from '../components/BrandMark';
 import { ModelSquatExample } from '../components/ModelSquatExample';
+import { ChallengeStakePicker } from '../components/ChallengeStakePicker';
 import { ShareSheet } from '../components/ShareSheet';
-import { clearStreak, createChallenge, listChallenges, todayReps } from '../lib/storage';
+import { TodayEstimatesCard } from '../components/TodayEstimatesCard';
+import { HeroStat, SurfaceCard } from '../components/ui';
+import { useHomeStats } from '../hooks/useHomeStats';
+import { stakeLabelFromId, type ChallengeStakeId } from '../lib/challengeStakes';
+import { createChallengeAndSync } from '../lib/storage';
+import { getLastTarget, setLastTarget } from '../lib/sessionTarget';
 import { useAppStore } from '../store';
 import type { Challenge } from '../lib/types';
 
@@ -11,56 +17,65 @@ export function HomePage() {
   const user = useAppStore((s) => s.user)!;
   const navigate = useNavigate();
   const location = useLocation();
-  const [target, setTarget] = useState(30);
-  const [sheetChallenge, setSheetChallenge] = useState<Challenge | null>(null);
-  const reps = useMemo(() => todayReps(user.id), [user.id, location.key]);
-  const streak = useMemo(() => clearStreak(user.id), [user.id, location.key]);
-  const active = useMemo(
-    () =>
-      listChallenges().find(
-        (c) =>
-          (c.status === 'open' || c.status === 'accepted') &&
-          (c.fromSoftUserId === user.id || c.toSoftUserId === user.id),
-      ),
-    [user.id, location.key],
+  const rematch = (location.state as { rematchTarget?: number } | null)?.rematchTarget;
+  const [target, setTarget] = useState(() =>
+    rematch && rematch > 0 ? rematch : getLastTarget(30),
   );
+  const [sheetChallenge, setSheetChallenge] = useState<Challenge | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [stakeId, setStakeId] = useState<ChallengeStakeId>('coffee');
+  const { reps, streak, todayEst, active } = useHomeStats(user, location.key);
+
+  useEffect(() => {
+    setLastTarget(target);
+  }, [target]);
 
   const sendChallenge = () => {
-    const c = createChallenge({
-      fromSoftUserId: user.id,
-      fromNickname: user.nickname,
-      targetReps: target,
-    });
-    // 항상 도전장 시트 먼저 (썸네일 + 메신저 선택) — 조용한 링크 복사 금지
-    setSheetChallenge(c);
+    setSharing(true);
+    void (async () => {
+      const c = await createChallengeAndSync({
+        fromSoftUserId: user.id,
+        fromNickname: user.nickname,
+        targetReps: target,
+        stakeLabel: stakeLabelFromId(stakeId),
+      });
+      setSharing(false);
+      setSheetChallenge(c);
+    })();
   };
 
   return (
-    <div className="page">
+    <div className="page page-enter">
       <BrandHeader size="lg" />
 
-      <div style={{ marginTop: 40, marginBottom: 8 }}>
-        <div className="hero-num" style={{ fontSize: 72 }}>
-          {reps}
-        </div>
-        <div className="meta" style={{ marginTop: 8 }}>
-          오늘 개수
-        </div>
-        <div style={{ marginTop: 10, color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
-          {streak > 0 ? `▸ ${streak}일 연속 오스완` : '▸ 오늘 목표를 채우면 오스완'}
-        </div>
+      <div style={{ marginTop: 36, marginBottom: 8 }}>
+        <HeroStat
+          value={reps}
+          label="오늘 개수"
+          hint={
+            <div style={{ marginTop: 10, color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
+              {streak > 0 ? `▸ ${streak}일 연속 오스완` : '▸ 오늘 목표를 채우면 오스완'}
+            </div>
+          }
+        />
       </div>
 
-      <p className="meta" style={{ fontSize: 15, margin: '28px 0 20px', lineHeight: 1.5 }}>
-        목표 채우면 오스완.
+      <TodayEstimatesCard
+        kcal={todayEst.kcal}
+        lowerBody={todayEst.lowerBody}
+        core={todayEst.core}
+        reps={reps}
+      />
+
+      <p className="meta" style={{ fontSize: 15, margin: '8px 0 18px', lineHeight: 1.5 }}>
+        목표 채우면 오스완. 시작은 아래 버튼, 또는 하단 초록 버튼.
       </p>
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="meta" style={{ marginBottom: 10 }}>
-          오늘 목표
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <SurfaceCard className="stack-sm" style={{ marginBottom: 14 }}>
+        <div className="meta">오늘 목표</div>
+        <div className="row">
           <button
+            type="button"
             className="cta-secondary"
             style={{ width: 48, padding: 10 }}
             onClick={() => setTarget((t) => Math.max(5, t - 5))}
@@ -71,6 +86,7 @@ export function HomePage() {
             {target}
           </div>
           <button
+            type="button"
             className="cta-secondary"
             style={{ width: 48, padding: 10 }}
             onClick={() => setTarget((t) => Math.min(200, t + 5))}
@@ -78,33 +94,35 @@ export function HomePage() {
             +
           </button>
         </div>
-      </div>
+      </SurfaceCard>
 
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 14 }}>
         <ModelSquatExample variant="compact" />
       </div>
 
-      <button className="cta-primary" onClick={() => navigate(`/session?target=${target}`)}>
+      <button type="button" className="cta-primary" onClick={() => navigate(`/session?target=${target}`)}>
         스쿼트 시작
       </button>
 
       {active && (
-        <Link
-          to={`/c/${active.id}`}
-          className="card"
-          style={{ display: 'block', marginTop: 16, borderLeft: '3px solid var(--accent)' }}
-        >
+        <SurfaceCard to={`/c/${active.id}`} accent style={{ marginTop: 14 }}>
           <div className="meta">활성 도전</div>
           <div style={{ fontWeight: 600, marginTop: 6 }}>
             {active.targetReps}개 · {active.fromNickname}
             {active.toNickname ? ` vs ${active.toNickname}` : ''}
           </div>
-        </Link>
+        </SurfaceCard>
       )}
 
-      <button className="cta-secondary" style={{ marginTop: 12 }} onClick={sendChallenge}>
-        친구에게 도전장
-      </button>
+      <div className="stack-sm" style={{ marginTop: 12 }}>
+        <ChallengeStakePicker value={stakeId} onChange={setStakeId} />
+        <button type="button" className="cta-secondary" disabled={sharing} onClick={sendChallenge}>
+          {sharing ? '도전장 준비 중…' : '친구에게 도전장'}
+        </button>
+        <Link to="/ranking" className="mute-link" style={{ textAlign: 'center' }}>
+          오늘의 랭킹 보기 →
+        </Link>
+      </div>
 
       {sheetChallenge && (
         <ShareSheet
