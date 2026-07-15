@@ -123,7 +123,7 @@ export function HistoryPage() {
           </div>
         </div>
         <p className="meta" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.4 }}>
-          칼로리는 합산, 하체·코어는 세션 평균. 하루 목표: 하체 55+ · 코어 40+
+          칼로리는 합산, 하체·코어는 세션 평균 자극 점수. 기준: 하체 55+ · 코어 40+ (개수 목표와 별개)
         </p>
       </div>
 

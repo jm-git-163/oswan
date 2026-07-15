@@ -29,7 +29,7 @@ const VERDICT_FG: Record<StimulusVerdict, string> = {
 const VERDICT_TAG: Record<StimulusVerdict, string> = {
   go: '더 해보자',
   push: '조금만 더',
-  done: '목표 도달',
+  done: '자극 도달',
   rest: '잘했어요',
 };
 
@@ -160,7 +160,7 @@ function GoalBar({
           {score}
           <span className="meta" style={{ fontWeight: 600 }}>
             {' '}
-            / {goal} 목표
+            / {goal} 자극
           </span>
         </span>
       </div>
@@ -182,7 +182,6 @@ function GoalBar({
             transition: 'width 0.35s ease',
           }}
         />
-        {/* goal marker */}
         <div
           style={{
             position: 'absolute',
@@ -195,7 +194,7 @@ function GoalBar({
         />
       </div>
       <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-        {gap > 0 ? `목표까지 ${gap}점` : '목표 구간 이상'}
+        {gap > 0 ? `자극 ${goal}까지 ${gap}점` : '자극 구간 이상'}
       </div>
     </div>
   );

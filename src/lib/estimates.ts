@@ -118,7 +118,7 @@ export function stimulusLabel(score: number): string {
 
 /** 하루/세션 자극 척도 안내 (동기부여용 · 의료 기준 아님) */
 export const STIMULUS_GOAL_HINT =
-  '하체·코어는 0~100 참고 점수예요. 하루 한 번에 하체 55+, 코어 40+면 괜찮은 자극입니다.';
+  '하체 55·코어 40은 자극 점수(0~100)예요. 홈의 오늘 목표 개수(스쿼트 N개)와는 다른 기준입니다.';
 
 export type StimulusVerdict = 'go' | 'push' | 'done' | 'rest';
 
@@ -147,7 +147,9 @@ export function recommendExtraReps(lowerGap: number): number {
   return Math.max(10, Math.min(40, Math.ceil(rough / 5) * 5));
 }
 
-/** 자극 점수 → 짧은 코치 카드용 구조화 문구 */
+/** 자극 점수 → 짧은 코치 카드용 구조화 문구
+ *  55·40 = 하체/코어 자극 점수(0~100). 개수(20개 등)와 다른 축이라 ‘목표’를 섞지 않음.
+ */
 export function buildStimulusCoach(input: {
   kcal: number;
   lowerBody: number;
@@ -156,14 +158,14 @@ export function buildStimulusCoach(input: {
 }): StimulusCoach {
   const { lowerBody, core, reps } = input;
   const meaningLower =
-    '허벅지·엉덩이가 오늘 얼마나 쓰였는지 추정한 점수예요. 개수·템포가 오르면 같이 올라갑니다.';
+    '허벅지·엉덩이 자극 점수(0~100)예요. 하루 하체 55 이상이면 괜찮은 자극으로 봅니다.';
   const meaningCore =
-    '앉았다 일어설 때 배·허리가 버티는 힘 추정이에요. 스쿼트에서는 하체보다 낮게 나오는 게 정상입니다.';
+    '배·허리 버티기 점수(0~100)예요. 하루 코어 40 이상이면 OK. 스쿼트에선 하체보다 낮게 나와요.';
 
   if (reps <= 0) {
     return {
       headline: '아직 오늘의 자극이 없어요',
-      action: '가볍게 20개부터 시작해 보세요',
+      action: '스쿼트 20개부터 시작해 보세요',
       verdict: 'go',
       meaningLower,
       meaningCore,
@@ -173,7 +175,7 @@ export function buildStimulusCoach(input: {
   if (lowerBody >= 80 || (lowerBody >= 70 && core >= 55)) {
     return {
       headline: '충분히 잘했어요',
-      action: '오늘은 여기까지 · 내일도 비슷한 개수면 OK',
+      action: '오늘은 여기까지 · 내일도 비슷한 자극이면 OK',
       verdict: 'rest',
       meaningLower,
       meaningCore,
@@ -182,8 +184,8 @@ export function buildStimulusCoach(input: {
 
   if (lowerBody >= 55 && core >= 40) {
     return {
-      headline: '오늘 목표 구간 도달',
-      action: '더 하고 싶으면 10~15개만 추가 · 폼 우선',
+      headline: '하체·코어 자극 점수 도달',
+      action: '더 하고 싶으면 스쿼트 10~15개만 추가',
       verdict: 'done',
       meaningLower,
       meaningCore,
@@ -194,8 +196,8 @@ export function buildStimulusCoach(input: {
     const gap = Math.max(5, 55 - lowerBody);
     const extra = recommendExtraReps(gap);
     return {
-      headline: '거의 다 왔어요',
-      action: `목표까지 스쿼트 ${extra}개만 더 하면 충분해요`,
+      headline: '하체 자극이 거의 찼어요',
+      action: `하체 55까지 · 스쿼트 ${extra}개만 더`,
       verdict: 'push',
       meaningLower,
       meaningCore,
@@ -204,9 +206,10 @@ export function buildStimulusCoach(input: {
 
   if (reps < 20) {
     const need = Math.max(20 - reps, 15);
+    const after = reps + need;
     return {
       headline: '워밍업 수준이에요',
-      action: `이어서 ${need}개만 더 채워 보세요 (총 20~30개 목표)`,
+      action: `이어서 스쿼트 ${need}개만 더 (하면 약 ${after}개)`,
       verdict: 'go',
       meaningLower,
       meaningCore,
@@ -215,8 +218,8 @@ export function buildStimulusCoach(input: {
 
   const extra = recommendExtraReps(Math.max(10, 55 - lowerBody));
   return {
-    headline: '자극이 아직 가벼운 편',
-    action: `한 세트 더 · ${extra}개 추천`,
+    headline: '하체 자극이 아직 가벼워요',
+    action: `하체 55를 향해 · 스쿼트 ${extra}개 추천`,
     verdict: 'go',
     meaningLower,
     meaningCore,

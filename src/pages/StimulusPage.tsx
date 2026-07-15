@@ -95,10 +95,10 @@ export function StimulusPage() {
         }}
       >
         <GuideRow
-          title="목표 감각"
-          body="하체 55+ · 코어 40+ 이면 하루 ‘괜찮은 자극’"
+          title="자극 점수"
+          body="하체 55+ · 코어 40+ (0~100). 하루 ‘괜찮은 자극’ 기준"
         />
-        <GuideRow title="0~100?" body={STIMULUS_GOAL_HINT} />
+        <GuideRow title="스쿼트 개수와 다름" body={STIMULUS_GOAL_HINT} />
         <GuideRow
           title="의료 아님"
           body="근력·체성분 측정이 아닙니다. 개수와 밀도로 만든 추정이에요."
@@ -136,7 +136,7 @@ function ScoreTile({
   return (
     <div className="surface-card" style={{ padding: 14 }}>
       <div className="meta" style={{ fontSize: 11 }}>
-        {label} · 목표 {goal}+
+        {label} · 자극 {goal}+
       </div>
       <div style={{ fontSize: 36, fontWeight: 800, marginTop: 4, letterSpacing: '-0.04em' }}>
         {score}

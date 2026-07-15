@@ -86,7 +86,7 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
           {e.weightKg}kg 기준
           {e.usedDefaultWeight ? ' (기본)' : ''}
           <br />
-          목표: 하체 55+ · 코어 40+
+          목표: 하체 자극 55+ · 코어 40+ (개수와 별개)
         </div>
       </div>
 
