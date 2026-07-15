@@ -43,6 +43,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         navigateFallback: '/index.html',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Large MediaPipe / BGM — network first, don't bloat SW precache
@@ -52,7 +55,7 @@ export default defineConfig({
             urlPattern: /\.(?:mp3|wasm)$/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'oswan-media',
+              cacheName: 'oswan-media-v2',
               expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },

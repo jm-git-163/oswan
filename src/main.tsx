@@ -3,7 +3,15 @@ import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 
-registerSW({ immediate: true });
+registerSW({
+  immediate: true,
+  onRegisteredSW(_swUrl, registration) {
+    void registration?.update();
+    window.setInterval(() => {
+      void registration?.update();
+    }, 60_000);
+  },
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

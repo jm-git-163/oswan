@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { backendStatus, fetchMyWeekStats, type DayStat } from '../lib/api';
-import { estimateSession, estimateSessionsTotal } from '../lib/estimates';
+import { estimateSession, estimateSessionsTotal, buildStimulusCoach, stimulusLabel } from '../lib/estimates';
 import { last7Days, listSessions } from '../lib/storage';
 import { useAppStore } from '../store';
 
@@ -61,12 +61,39 @@ export function HistoryPage() {
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="meta">최근 7일 추정</div>
+        {(() => {
+          const weekReps = weekSessions.reduce((a, s) => a + s.reps, 0);
+          const coach = buildStimulusCoach({
+            kcal: weekEst.kcal,
+            lowerBody: weekEst.lowerBody,
+            core: weekEst.core,
+            reps: weekReps,
+          });
+          return (
+            <>
+              <div
+                style={{
+                  marginTop: 12,
+                  fontSize: 17,
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.35,
+                }}
+              >
+                {coach.headline}
+              </div>
+              <div style={{ marginTop: 6, color: 'var(--accent)', fontWeight: 700, fontSize: 14 }}>
+                {coach.action}
+              </div>
+            </>
+          );
+        })()}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr 1fr',
             gap: 10,
-            marginTop: 12,
+            marginTop: 16,
             textAlign: 'center',
           }}
         >
@@ -79,20 +106,24 @@ export function HistoryPage() {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>{weekEst.lowerBody}</div>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>
+              {stimulusLabel(weekEst.lowerBody)}
+            </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              하체 평균
+              하체 · {weekEst.lowerBody}/55
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>{weekEst.core}</div>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>
+              {stimulusLabel(weekEst.core)}
+            </div>
             <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              코어 평균
+              코어 · {weekEst.core}/40
             </div>
           </div>
         </div>
         <p className="meta" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.4 }}>
-          칼로리는 합산, 하체·코어는 세션 평균(0~100). 하루 목표 감각: 하체 55+ · 코어 40+
+          칼로리는 합산, 하체·코어는 세션 평균. 하루 목표: 하체 55+ · 코어 40+
         </p>
       </div>
 
@@ -140,7 +171,15 @@ export function HistoryPage() {
                   {new Date(s.endedAt).toLocaleString('ko-KR')}
                 </div>
                 <div className="meta" style={{ fontSize: 12, marginTop: 6 }}>
-                  약 {est.kcal} kcal · 하체 {est.lowerBody} · 코어 {est.core}
+                  {(() => {
+                    const c = buildStimulusCoach({
+                      kcal: est.kcal,
+                      lowerBody: est.lowerBody,
+                      core: est.core,
+                      reps: s.reps,
+                    });
+                    return `${c.headline} · 하체 ${est.lowerBody}/55 · 코어 ${est.core}/40`;
+                  })()}
                 </div>
               </div>
               <div

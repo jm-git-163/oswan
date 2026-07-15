@@ -13,10 +13,10 @@ type Props = {
 };
 
 const VERDICT_TINT: Record<StimulusVerdict, string> = {
-  go: 'rgba(200,245,74,0.14)',
-  push: 'rgba(255,210,63,0.14)',
-  done: 'rgba(200,245,74,0.18)',
-  rest: 'rgba(120,180,255,0.14)',
+  go: 'rgba(200,245,74,0.16)',
+  push: 'rgba(255,210,63,0.16)',
+  done: 'rgba(200,245,74,0.2)',
+  rest: 'rgba(120,180,255,0.16)',
 };
 
 const VERDICT_FG: Record<StimulusVerdict, string> = {
@@ -26,7 +26,14 @@ const VERDICT_FG: Record<StimulusVerdict, string> = {
   rest: '#8EC5FF',
 };
 
-/** Compact home card — punchline + bars; detail on /stimulus */
+const VERDICT_TAG: Record<StimulusVerdict, string> = {
+  go: '더 해보자',
+  push: '조금만 더',
+  done: '목표 도달',
+  rest: '잘했어요',
+};
+
+/** Compact home card — coach first, numbers secondary */
 export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
   if (reps <= 0) return null;
 
@@ -41,38 +48,66 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
         marginBottom: 14,
         textDecoration: 'none',
         color: 'inherit',
-        padding: 16,
+        padding: 18,
+        border: '1px solid rgba(200,245,74,0.28)',
+        background: 'linear-gradient(165deg, rgba(200,245,74,0.08), transparent 55%)',
       }}
     >
-      <div
-        style={{
-          display: 'inline-block',
-          padding: '6px 12px',
-          borderRadius: 10,
-          background: VERDICT_TINT[coach.verdict],
-          color: VERDICT_FG[coach.verdict],
-          fontWeight: 800,
-          fontSize: 15,
-          letterSpacing: '-0.02em',
-        }}
-      >
-        {coach.headline}
-      </div>
-      <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, lineHeight: 1.4 }}>
-        {coach.action}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+            color: VERDICT_FG[coach.verdict],
+            background: VERDICT_TINT[coach.verdict],
+            padding: '4px 10px',
+            borderRadius: 999,
+          }}
+        >
+          {VERDICT_TAG[coach.verdict]}
+        </span>
+        <span className="meta" style={{ fontSize: 11 }}>
+          오늘의 자극
+        </span>
       </div>
 
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr 1fr',
-          gap: 10,
-          marginTop: 16,
+          fontSize: 22,
+          fontWeight: 800,
+          letterSpacing: '-0.03em',
+          lineHeight: 1.25,
+          color: 'var(--text)',
         }}
       >
-        <Stat tip="kcal" value={`약 ${kcal}`} />
-        <Stat tip="하체" value={`${stimulusLabel(lowerBody)} ${lowerBody}`} accent />
-        <Stat tip="코어" value={`${stimulusLabel(core)} ${core}`} accent />
+        {coach.headline}
+      </div>
+      <div
+        style={{
+          marginTop: 8,
+          fontSize: 15,
+          fontWeight: 600,
+          color: 'var(--accent)',
+          lineHeight: 1.4,
+        }}
+      >
+        {coach.action}
+      </div>
+
+      <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
+        <GoalBar
+          label="하체"
+          score={lowerBody}
+          goal={55}
+          feel={stimulusLabel(lowerBody)}
+        />
+        <GoalBar
+          label="코어"
+          score={core}
+          goal={40}
+          feel={stimulusLabel(core)}
+        />
       </div>
 
       <div
@@ -85,35 +120,82 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
           alignItems: 'center',
         }}
       >
-        <span>의미 · 목표 감각</span>
-        <span style={{ color: 'var(--accent)', fontWeight: 700 }}>자세히 →</span>
+        <span>약 {kcal} kcal · 참고용</span>
+        <span style={{ color: 'var(--accent)', fontWeight: 700 }}>의미 보기 →</span>
       </div>
     </Link>
   );
 }
 
-function Stat({ tip, value, accent }: { tip: string; value: string; accent?: boolean }) {
+function GoalBar({
+  label,
+  score,
+  goal,
+  feel,
+}: {
+  label: string;
+  score: number;
+  goal: number;
+  feel: string;
+}) {
+  const pct = Math.min(100, Math.max(0, score));
+  const gap = Math.max(0, goal - score);
   return (
-    <div
-      style={{
-        textAlign: 'center',
-        padding: '10px 6px',
-        borderRadius: 12,
-        background: 'rgba(255,255,255,0.04)',
-      }}
-    >
-      <div className="meta" style={{ fontSize: 10, marginBottom: 4 }}>
-        {tip}
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          marginBottom: 6,
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 700 }}>
+          {label}{' '}
+          <span className="meta" style={{ fontWeight: 600 }}>
+            {feel}
+          </span>
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 800 }}>
+          {score}
+          <span className="meta" style={{ fontWeight: 600 }}>
+            {' '}
+            / {goal} 목표
+          </span>
+        </span>
       </div>
       <div
         style={{
-          fontSize: 13,
-          fontWeight: 800,
-          color: accent ? 'var(--accent)' : 'var(--text)',
-          letterSpacing: '-0.02em',
+          height: 10,
+          borderRadius: 999,
+          background: 'var(--surface-3)',
+          overflow: 'hidden',
+          position: 'relative',
         }}
       >
-        {value}
+        <div
+          style={{
+            width: `${pct}%`,
+            height: '100%',
+            borderRadius: 999,
+            background: score >= goal ? 'var(--accent)' : '#FFD23F',
+            transition: 'width 0.35s ease',
+          }}
+        />
+        {/* goal marker */}
+        <div
+          style={{
+            position: 'absolute',
+            left: `${goal}%`,
+            top: 0,
+            bottom: 0,
+            width: 2,
+            background: 'rgba(255,255,255,0.35)',
+          }}
+        />
+      </div>
+      <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
+        {gap > 0 ? `목표까지 ${gap}점` : '목표 구간 이상'}
       </div>
     </div>
   );
