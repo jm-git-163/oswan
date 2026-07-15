@@ -133,7 +133,7 @@ export const STIMULUS_GOAL_HINT =
   '하체 55점·코어 40점은 자극 세기(0~100점)예요. 홈의 오늘 목표(예: 스쿼트 30개)와는 다른 숫자입니다.';
 
 export const STIMULUS_VS_REPS_HINT =
-  '개수 = 스쿼트를 몇 번 했는지 · 점수 = 하체·코어가 얼마나 세게 쓰였는지(0~100점)';
+  '개수 = 스쿼트를 몇 번 했는지. 점수 = 하체·코어가 얼마나 세게 쓰였는지 (0~100점).';
 
 export type StimulusVerdict = 'go' | 'push' | 'done' | 'rest';
 

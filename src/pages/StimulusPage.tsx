@@ -39,8 +39,8 @@ export function StimulusPage() {
       <h1 className="page-title" style={{ marginTop: 16, fontSize: 28 }}>
         오늘의 자극
       </h1>
-      <p className="meta" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.45 }}>
-        점수는 자극 세기예요. 위에 보이는 스쿼트 개수와는 단위가 다릅니다.
+      <p className="meta" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
+        개수와 점수는 서로 다른 단위예요.
       </p>
 
       <div style={{ marginTop: 16 }}>
@@ -54,23 +54,25 @@ export function StimulusPage() {
           borderRadius: 16,
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.1)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
         }}
       >
-        <div>
-          <div className="meta" style={{ fontSize: 11 }}>
-            오늘 스쿼트 · 개수
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 2, letterSpacing: '-0.03em' }}>
-            {formatReps(reps)}
-          </div>
+        <div className="meta" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
+          오늘 스쿼트 · 개수
         </div>
-        <div className="meta" style={{ fontSize: 12, textAlign: 'right', lineHeight: 1.4, maxWidth: 160 }}>
+        <div
+          style={{
+            fontSize: 28,
+            fontWeight: 800,
+            marginTop: 4,
+            letterSpacing: '-0.03em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {formatReps(reps)}
+        </div>
+        <p className="meta" style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.5 }}>
           {STIMULUS_VS_REPS_HINT}
-        </div>
+        </p>
       </div>
 
       <div
@@ -82,10 +84,27 @@ export function StimulusPage() {
           border: '1px solid rgba(200,245,74,0.22)',
         }}
       >
-        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.25 }}>
+        <div
+          style={{
+            fontSize: 26,
+            fontWeight: 800,
+            letterSpacing: '-0.03em',
+            lineHeight: 1.35,
+            wordBreak: 'keep-all',
+          }}
+        >
           {coach.headline}
         </div>
-        <div style={{ marginTop: 10, fontSize: 16, fontWeight: 600, color: 'var(--accent)' }}>
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 16,
+            fontWeight: 600,
+            color: 'var(--accent)',
+            lineHeight: 1.45,
+            wordBreak: 'keep-all',
+          }}
+        >
           {coach.action}
         </div>
       </div>
@@ -176,9 +195,17 @@ function ScoreTile({
       <div className="meta" style={{ fontSize: 11 }}>
         {label} · 자극 {formatPts(goal)}+
       </div>
-      <div style={{ fontSize: 36, fontWeight: 800, marginTop: 4, letterSpacing: '-0.04em' }}>
+      <div
+        style={{
+          fontSize: 36,
+          fontWeight: 800,
+          marginTop: 4,
+          letterSpacing: '-0.04em',
+          whiteSpace: 'nowrap',
+        }}
+      >
         {formatPts(score)}
-        <span className="meta" style={{ fontSize: 13, fontWeight: 600, marginLeft: 4 }}>
+        <span className="meta" style={{ fontSize: 13, fontWeight: 600, marginLeft: 6 }}>
           {stimulusLabel(score)}
         </span>
       </div>
@@ -212,14 +239,24 @@ function GuideRow({ title, body }: { title: string; body: string }) {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '88px 1fr',
+        gridTemplateColumns: 'minmax(4.5em, auto) 1fr',
         gap: 12,
         padding: '12px 4px',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
+        wordBreak: 'keep-all',
       }}
     >
-      <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--accent)' }}>{title}</div>
-      <div className="meta" style={{ fontSize: 13, lineHeight: 1.45 }}>
+      <div
+        style={{
+          fontWeight: 800,
+          fontSize: 13,
+          color: 'var(--accent)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {title}
+      </div>
+      <div className="meta" style={{ fontSize: 13, lineHeight: 1.5, minWidth: 0 }}>
         {body}
       </div>
     </div>

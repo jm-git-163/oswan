@@ -1,9 +1,16 @@
-/** 스쿼트 개수(개) vs 자극 점수(점) 구분용 범례 */
+/** 스쿼트 개수(개) vs 자극 점수(점) — 단위가 한 덩어리로 보이게 */
+
+import type { CSSProperties } from 'react';
 
 type Props = {
   compact?: boolean;
   /** 오늘 개수 — compact일 때 옆에 숫자 표시 */
   reps?: number;
+};
+
+const keepWord: CSSProperties = {
+  wordBreak: 'keep-all',
+  overflowWrap: 'break-word',
 };
 
 export function MetricLegend({ compact, reps }: Props) {
@@ -22,10 +29,11 @@ export function MetricLegend({ compact, reps }: Props) {
             style={{
               fontSize: 11,
               fontWeight: 700,
-              padding: '3px 8px',
+              padding: '4px 10px',
               borderRadius: 999,
               background: 'rgba(255,255,255,0.08)',
               color: 'var(--text)',
+              whiteSpace: 'nowrap',
             }}
           >
             오늘 {Math.round(reps)}개
@@ -35,13 +43,14 @@ export function MetricLegend({ compact, reps }: Props) {
           style={{
             fontSize: 11,
             fontWeight: 700,
-            padding: '3px 8px',
+            padding: '4px 10px',
             borderRadius: 999,
             background: 'rgba(200,245,74,0.14)',
             color: 'var(--accent)',
+            whiteSpace: 'nowrap',
           }}
         >
-          아래는 자극 점수(점)
+          아래는 자극 점수
         </span>
       </div>
     );
@@ -53,18 +62,19 @@ export function MetricLegend({ compact, reps }: Props) {
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: 8,
+        ...keepWord,
       }}
     >
       <LegendTile
-        unit="개"
-        title="스쿼트 개수"
-        body="몇 번 앉았다 일어났는지"
+        badge="개수"
+        example="예: 30개"
+        body="스쿼트를 몇 번 했는지"
         tone="reps"
       />
       <LegendTile
-        unit="점"
-        title="자극 점수"
-        body="하체·코어 세기 (0~100)"
+        badge="점수"
+        example="예: 55점"
+        body="하체·코어 세기 0~100"
         tone="score"
       />
     </div>
@@ -72,13 +82,13 @@ export function MetricLegend({ compact, reps }: Props) {
 }
 
 function LegendTile({
-  unit,
-  title,
+  badge,
+  example,
   body,
   tone,
 }: {
-  unit: string;
-  title: string;
+  badge: string;
+  example: string;
   body: string;
   tone: 'reps' | 'score';
 }) {
@@ -86,35 +96,40 @@ function LegendTile({
   return (
     <div
       style={{
-        padding: '12px 12px',
+        padding: '14px 12px',
         borderRadius: 14,
         border: accent
           ? '1px solid rgba(200,245,74,0.28)'
           : '1px solid rgba(255,255,255,0.1)',
         background: accent ? 'rgba(200,245,74,0.06)' : 'rgba(255,255,255,0.04)',
+        minWidth: 0,
+        ...keepWord,
       }}
     >
       <div
         style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          marginBottom: 6,
+          fontSize: 16,
+          fontWeight: 900,
+          letterSpacing: '-0.02em',
+          color: accent ? 'var(--accent)' : 'var(--text)',
+          whiteSpace: 'nowrap',
         }}
       >
-        <span
-          style={{
-            fontSize: 18,
-            fontWeight: 900,
-            letterSpacing: '-0.03em',
-            color: accent ? 'var(--accent)' : 'var(--text)',
-          }}
-        >
-          {unit}
-        </span>
-        <span style={{ fontSize: 12, fontWeight: 800 }}>{title}</span>
+        {badge}
       </div>
-      <div className="meta" style={{ fontSize: 11, lineHeight: 1.4 }}>
+      <div
+        className="meta"
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          marginTop: 6,
+          color: 'var(--text-secondary)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {example}
+      </div>
+      <div className="meta" style={{ fontSize: 11, lineHeight: 1.45, marginTop: 8, ...keepWord }}>
         {body}
       </div>
     </div>
