@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { backendStatus, fetchMyWeekStats, type DayStat } from '../lib/api';
-import { estimateSession, estimateSessionsTotal, buildStimulusCoach, stimulusLabel, lowerRepEquiv, coreRepEquiv, DAILY_LOWER_REPS, DAILY_CORE_REPS, formatReps } from '../lib/estimates';
+import { estimateSession, estimateSessionsTotal, buildStimulusCoach, stimulusLabel, DAILY_LOWER_REPS, DAILY_CORE_REPS, formatReps, lowerGoalProgress } from '../lib/estimates';
 import { last7Days, listSessions } from '../lib/storage';
 import { useAppStore } from '../store';
 
@@ -85,46 +85,49 @@ export function HistoryPage() {
               <div style={{ marginTop: 6, color: 'var(--accent)', fontWeight: 700, fontSize: 14 }}>
                 {coach.action}
               </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr',
+                  gap: 10,
+                  marginTop: 16,
+                  textAlign: 'center',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--accent)' }}>
+                    약 {weekEst.kcal}
+                  </div>
+                  <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
+                    kcal
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 800 }}>
+                    {stimulusLabel(weekEst.lowerBody)}
+                  </div>
+                  <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
+                    하체 · 주간 스쿼트 {formatReps(weekReps)}
+                    <br />
+                    (하루 권장 {formatReps(DAILY_LOWER_REPS)})
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 800 }}>
+                    {stimulusLabel(weekEst.core)}
+                  </div>
+                  <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
+                    코어 질감 · 참고 {formatReps(DAILY_CORE_REPS)}/일
+                  </div>
+                </div>
+              </div>
+              <p className="meta" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.4 }}>
+                칼로리·개수는 합산. 권장 하체 자극은 하루 스쿼트 {formatReps(DAILY_LOWER_REPS)} 기준. 막대는
+                실제 개수.
+              </p>
             </>
           );
         })()}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: 10,
-            marginTop: 16,
-            textAlign: 'center',
-          }}
-        >
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--accent)' }}>
-              약 {weekEst.kcal}
-            </div>
-            <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              kcal
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>
-              {stimulusLabel(weekEst.lowerBody)}
-            </div>
-            <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              하체 자극 · {formatReps(lowerRepEquiv(weekEst.lowerBody))}/{formatReps(DAILY_LOWER_REPS)}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>
-              {stimulusLabel(weekEst.core)}
-            </div>
-            <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-              코어 자극 · {formatReps(coreRepEquiv(weekEst.core))}/{formatReps(DAILY_CORE_REPS)}
-            </div>
-          </div>
-        </div>
-        <p className="meta" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.4 }}>
-          칼로리는 합산(체중 반영), 하체·코어는 세션 평균 자극 개수. 하루 하체 참고 {formatReps(DAILY_LOWER_REPS)} · 막대는 실제 개수
-        </p>
       </div>
 
       <div
@@ -178,7 +181,8 @@ export function HistoryPage() {
                       core: est.core,
                       reps: s.reps,
                     });
-                    return `${c.headline} · 하체 ${formatReps(lowerRepEquiv(est.lowerBody))}/${formatReps(DAILY_LOWER_REPS)} · 코어 ${formatReps(coreRepEquiv(est.core))}/${formatReps(DAILY_CORE_REPS)}`;
+                    const p = lowerGoalProgress(s.reps);
+                    return `${c.headline} · 스쿼트 ${formatReps(p.current)}/${formatReps(DAILY_LOWER_REPS)} · ${stimulusLabel(est.lowerBody)}`;
                   })()}
                 </div>
               </div>

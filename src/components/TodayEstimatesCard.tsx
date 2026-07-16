@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom';
 import { MetricLegend } from './MetricLegend';
+import { StimulusProgressDiagram } from './StimulusProgressDiagram';
 import {
-  DAILY_CORE_REPS,
-  DAILY_LOWER_REPS,
   buildStimulusCoach,
-  coreRepEquiv,
+  coreGoalProgress,
   formatReps,
-  lowerRepEquiv,
+  lowerGoalProgress,
   stimulusLabel,
   type StimulusVerdict,
 } from '../lib/estimates';
@@ -39,13 +38,13 @@ const VERDICT_TAG: Record<StimulusVerdict, string> = {
   rest: '잘했어요',
 };
 
-/** 홈 자극 카드 — 전부 ‘개’ */
+/** 홈 자극 카드 — 하체 진행 = 실제 스쿼트 개수 */
 export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
   if (reps <= 0) return null;
 
   const coach = buildStimulusCoach({ kcal, lowerBody, core, reps });
-  const lowerEq = lowerRepEquiv(lowerBody);
-  const coreEq = coreRepEquiv(core);
+  const lower = lowerGoalProgress(reps);
+  const coreP = coreGoalProgress(reps);
 
   return (
     <Link
@@ -80,7 +79,6 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
         </span>
       </div>
 
-      {/* 헤드라인(예: 거의 찼어요)은 바의 가벼움/보통과 충돌해 홈에서는 생략. 행동 제안만. */}
       <div
         style={{
           fontSize: 16,
@@ -94,21 +92,32 @@ export function TodayEstimatesCard({ kcal, lowerBody, core, reps }: Props) {
       </div>
 
       <div style={{ marginTop: 14 }}>
+        <StimulusProgressDiagram
+          current={lower.current}
+          goal={lower.goal}
+          feel={stimulusLabel(lowerBody)}
+          compact
+        />
+      </div>
+
+      <div style={{ marginTop: 12 }}>
         <MetricLegend compact reps={reps} />
       </div>
 
       <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
         <GoalBar
-          label="하체 자극"
-          current={lowerEq}
-          goal={DAILY_LOWER_REPS}
+          label="권장 하체 자극"
+          current={lower.current}
+          goal={lower.goal}
           feel={stimulusLabel(lowerBody)}
+          unitHint="스쿼트 개수"
         />
         <GoalBar
-          label="코어 자극"
-          current={coreEq}
-          goal={DAILY_CORE_REPS}
+          label="코어 참고"
+          current={coreP.current}
+          goal={coreP.goal}
           feel={stimulusLabel(core)}
+          unitHint="스쿼트 상당"
         />
       </div>
 
@@ -134,11 +143,13 @@ function GoalBar({
   current,
   goal,
   feel,
+  unitHint,
 }: {
   label: string;
   current: number;
   goal: number;
   feel: string;
+  unitHint: string;
 }) {
   const pct = Math.min(100, Math.max(0, (current / goal) * 100));
   const gap = Math.max(0, goal - current);
@@ -186,7 +197,9 @@ function GoalBar({
         />
       </div>
       <div className="meta" style={{ fontSize: 11, marginTop: 4 }}>
-        {gap > 0 ? `${formatReps(gap)} 남음` : '하루 자극 OK'}
+        {gap > 0
+          ? `${unitHint} · ${formatReps(gap)} 남음`
+          : `${unitHint} · 하루 권장 OK`}
       </div>
     </div>
   );

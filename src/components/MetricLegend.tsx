@@ -1,10 +1,11 @@
-/** 하루 자극 기준(개) 안내 — 체중 비례 아님 */
+/** 하루 자극 기준 — 실제 스쿼트 개수 = 하체 권장 단위 */
 
 import {
   DAILY_CORE_REPS,
   DAILY_LOWER_REPS,
   STIMULUS_BASIS_HINT,
   formatReps,
+  lowerGoalProgress,
 } from '../lib/estimates';
 
 type Props = {
@@ -13,6 +14,8 @@ type Props = {
 };
 
 export function MetricLegend({ compact, reps }: Props) {
+  const progress = typeof reps === 'number' ? lowerGoalProgress(reps) : null;
+
   if (compact) {
     return (
       <div
@@ -23,7 +26,7 @@ export function MetricLegend({ compact, reps }: Props) {
           alignItems: 'center',
         }}
       >
-        {typeof reps === 'number' && (
+        {progress && (
           <span
             style={{
               fontSize: 11,
@@ -34,7 +37,7 @@ export function MetricLegend({ compact, reps }: Props) {
               whiteSpace: 'nowrap',
             }}
           >
-            오늘 {Math.round(reps)}개
+            오늘 스쿼트 {progress.current}개
           </span>
         )}
         <span
@@ -48,7 +51,7 @@ export function MetricLegend({ compact, reps }: Props) {
             whiteSpace: 'nowrap',
           }}
         >
-          하체 참고 {formatReps(DAILY_LOWER_REPS)}
+          하체 권장 {formatReps(DAILY_LOWER_REPS)}
         </span>
       </div>
     );
@@ -65,10 +68,10 @@ export function MetricLegend({ compact, reps }: Props) {
       }}
     >
       <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.4 }}>
-        하루 하체 참고 목표 {formatReps(DAILY_LOWER_REPS)}
+        권장 하체 자극 = 스쿼트 {formatReps(DAILY_LOWER_REPS)}
       </div>
       <p className="meta" style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5 }}>
-        {STIMULUS_BASIS_HINT} 코어는 약 {formatReps(DAILY_CORE_REPS)}을 참고해요.
+        {STIMULUS_BASIS_HINT} 코어 참고는 약 {formatReps(DAILY_CORE_REPS)} 상당이에요.
       </p>
     </div>
   );

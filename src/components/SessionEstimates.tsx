@@ -3,9 +3,9 @@ import {
   DAILY_LOWER_REPS,
   estimateSession,
   buildStimulusCoach,
-  coreRepEquiv,
+  coreGoalProgress,
   formatReps,
-  lowerRepEquiv,
+  lowerGoalProgress,
   stimulusLabel,
   type SessionEstimates as Estimates,
 } from '../lib/estimates';
@@ -13,6 +13,8 @@ import {
 type Props = {
   reps: number;
   durationMs: number;
+  /** 오늘 이미 한 개수(이번 세트 제외). 있으면 하루 권장까지 남음 표시 */
+  todayRepsBefore?: number;
   compact?: boolean;
 };
 
@@ -57,7 +59,7 @@ function Bar({
             width: `${pct}%`,
             height: '100%',
             borderRadius: 999,
-            background: current >= goal ? 'var(--accent)' : 'var(--accent)',
+            background: 'var(--accent)',
             transition: 'width 0.4s ease',
             opacity: current >= goal ? 1 : 0.85,
           }}
@@ -70,16 +72,17 @@ function Bar({
   );
 }
 
-export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
+export function SessionEstimatesCard({ reps, durationMs, todayRepsBefore = 0, compact }: Props) {
   const e: Estimates = estimateSession(reps, durationMs);
-  const lowerEq = lowerRepEquiv(e.lowerBody);
-  const coreEq = coreRepEquiv(e.core);
+  const dayReps = todayRepsBefore + reps;
+  const lower = lowerGoalProgress(dayReps);
+  const coreP = coreGoalProgress(dayReps);
 
   if (compact) {
     return (
       <div className="meta" style={{ fontSize: 12, marginTop: 6, wordBreak: 'keep-all' }}>
-        약 {e.kcal} kcal · 하체 자극 {stimulusLabel(e.lowerBody)} {formatReps(lowerEq)} · 코어 자극{' '}
-        {stimulusLabel(e.core)} {formatReps(coreEq)}
+        약 {e.kcal} kcal · 오늘 스쿼트 {formatReps(dayReps)} · 하체 권장 {formatReps(DAILY_LOWER_REPS)} ·{' '}
+        {stimulusLabel(e.lowerBody)}
       </div>
     );
   }
@@ -106,22 +109,26 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
           {e.weightKg}kg 기준
           {e.usedDefaultWeight ? ' (기본)' : ''}
           <br />
-          하루 하체 {formatReps(DAILY_LOWER_REPS)}
+          권장 하체 = 스쿼트 {formatReps(DAILY_LOWER_REPS)}
         </div>
       </div>
 
       <div style={{ display: 'grid', gap: 14, marginTop: 16 }}>
         <Bar
-          label="하체 자극"
-          current={lowerEq}
-          goal={DAILY_LOWER_REPS}
-          hint={`허벅지·엉덩이 · 하루 ${formatReps(DAILY_LOWER_REPS)}이면 OK · 지금 ${stimulusLabel(e.lowerBody)}`}
+          label="권장 하체 자극"
+          current={lower.current}
+          goal={lower.goal}
+          hint={
+            lower.left > 0
+              ? `오늘 ${formatReps(dayReps)} · 권장까지 스쿼트 ${formatReps(lower.left)}만 더 · 질감 ${stimulusLabel(e.lowerBody)}`
+              : `권장 하체 자극 도달 · 질감 ${stimulusLabel(e.lowerBody)}`
+          }
         />
         <Bar
-          label="코어 자극"
-          current={coreEq}
-          goal={DAILY_CORE_REPS}
-          hint={`배·허리 · 하루 ${formatReps(DAILY_CORE_REPS)}이면 OK · 지금 ${stimulusLabel(e.core)}`}
+          label="코어 참고"
+          current={coreP.current}
+          goal={coreP.goal}
+          hint={`스쿼트 상당 · 하루 ${formatReps(DAILY_CORE_REPS)} · 질감 ${stimulusLabel(e.core)}`}
         />
       </div>
 
@@ -131,7 +138,7 @@ export function SessionEstimatesCard({ reps, durationMs, compact }: Props) {
             kcal: e.kcal,
             lowerBody: e.lowerBody,
             core: e.core,
-            reps,
+            reps: dayReps,
           });
           return `${c.headline} · ${c.action}`;
         })()}
