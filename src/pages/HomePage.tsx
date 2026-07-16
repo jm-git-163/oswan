@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BrandHeader } from '../components/BrandMark';
 import { ModelSquatExample } from '../components/ModelSquatExample';
 import { ShareSheet } from '../components/ShareSheet';
-import { TodayEstimatesCard } from '../components/TodayEstimatesCard';
 import { HeroStat, SurfaceCard } from '../components/ui';
 import { useHomeStats } from '../hooks/useHomeStats';
 import { createChallengeAndSync } from '../lib/storage';
@@ -21,7 +20,7 @@ export function HomePage() {
   );
   const [sheetChallenge, setSheetChallenge] = useState<Challenge | null>(null);
   const [sharing, setSharing] = useState(false);
-  const { reps, streak, todayEst, active } = useHomeStats(user, location.key);
+  const { reps, streak, active } = useHomeStats(user, location.key);
 
   useEffect(() => {
     setLastTarget(target);
@@ -56,13 +55,6 @@ export function HomePage() {
           }
         />
       </div>
-
-      <TodayEstimatesCard
-        kcal={todayEst.kcal}
-        lowerBody={todayEst.lowerBody}
-        core={todayEst.core}
-        reps={reps}
-      />
 
       <p className="meta" style={{ fontSize: 15, margin: '8px 0 18px', lineHeight: 1.5 }}>
         아래에 정한 개수를 채우면 오스완.
