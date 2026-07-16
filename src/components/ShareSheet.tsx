@@ -215,9 +215,9 @@ export function ShareSheet({ open, challenge, onClose }: Props) {
               )
             }
           >
-            링크 복사 (짧음 · 붙여넣기용)
+            링크 복사
           </button>
-          <p className="meta" style={{ textAlign: 'center', fontSize: 11, opacity: 0.7 }}>
+          <p className="meta" style={{ textAlign: 'center', fontSize: 12, opacity: 0.85 }}>
             {challengeShareUrlLabel(challenge)}
           </p>
 

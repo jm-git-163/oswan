@@ -144,24 +144,39 @@ export async function fetchMyWeekStats(softUserId: string): Promise<DayStat[]> {
 export async function fetchRemoteChallenge(id: string): Promise<Challenge | null> {
   const sb = getSupabase();
   if (!sb) return null;
-  const { data, error } = await sb.from('challenges').select('*').eq('id', id).maybeSingle();
-  if (error || !data) return null;
-  return {
-    id: data.id,
-    fromSoftUserId: data.from_soft_user_id,
-    fromNickname: data.from_nickname,
-    toSoftUserId: data.to_soft_user_id ?? undefined,
-    toNickname: data.to_nickname ?? undefined,
-    targetReps: data.target_reps,
-    deadlineAt: data.deadline_at,
-    status: data.status,
-    ruleVersion: data.rule_version,
-    winMode: data.win_mode,
-    fromCleared: data.from_cleared ?? undefined,
-    toCleared: data.to_cleared ?? undefined,
-    fromSessionId: data.from_session_id ?? undefined,
-    toSessionId: data.to_session_id ?? undefined,
-    createdAt: data.created_at,
-    stakeLabel: data.stake_label ?? undefined,
-  };
+
+  const mapRow = (data: Record<string, unknown>): Challenge => ({
+    id: String(data.id),
+    fromSoftUserId: String(data.from_soft_user_id),
+    fromNickname: String(data.from_nickname),
+    toSoftUserId: data.to_soft_user_id ? String(data.to_soft_user_id) : undefined,
+    toNickname: data.to_nickname ? String(data.to_nickname) : undefined,
+    targetReps: Number(data.target_reps),
+    deadlineAt: String(data.deadline_at),
+    status: data.status as Challenge['status'],
+    ruleVersion: String(data.rule_version),
+    winMode: (data.win_mode as Challenge['winMode']) || 'clear_target',
+    fromCleared: data.from_cleared === true ? true : data.from_cleared === false ? false : undefined,
+    toCleared: data.to_cleared === true ? true : data.to_cleared === false ? false : undefined,
+    fromSessionId: data.from_session_id ? String(data.from_session_id) : undefined,
+    toSessionId: data.to_session_id ? String(data.to_session_id) : undefined,
+    createdAt: String(data.created_at),
+    stakeLabel: data.stake_label ? String(data.stake_label) : undefined,
+  });
+
+  // Full UUID — exact match
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    const { data, error } = await sb.from('challenges').select('*').eq('id', id).maybeSingle();
+    if (error || !data) return null;
+    return mapRow(data as Record<string, unknown>);
+  }
+
+  // Short invite code → prefix match on uuid text
+  const hex = id.replace(/-/g, '').toLowerCase();
+  if (hex.length < 8) return null;
+  const like =
+    hex.length === 8 ? `${hex}%` : `${hex.slice(0, 8)}-${hex.slice(8)}%`;
+  const { data, error } = await sb.from('challenges').select('*').like('id', like).limit(2);
+  if (error || !data || data.length !== 1) return null;
+  return mapRow(data[0] as Record<string, unknown>);
 }

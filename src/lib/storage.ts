@@ -178,7 +178,14 @@ export function listChallenges(): Challenge[] {
 }
 
 export function getChallenge(id: string): Challenge | null {
-  return listChallenges().find((c) => c.id === id) ?? null;
+  const all = listChallenges();
+  const exact = all.find((c) => c.id === id);
+  if (exact) return exact;
+  // Short invite codes: first N hex digits of the UUID (no dashes).
+  const key = normalizeInviteCode(id);
+  if (key.length < 8) return null;
+  const matches = all.filter((c) => c.id.replace(/-/g, '').toLowerCase().startsWith(key));
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export function createChallenge(input: {
@@ -315,7 +322,7 @@ export function importChallengeFromPayload(payload: Challenge): Challenge {
   return merged;
 }
 
-/** Persist sync before sharing so bare /c/:id works for recipients. */
+/** Persist sync before sharing so bare /c/:code works for recipients. */
 export async function createChallengeAndSync(input: {
   fromSoftUserId: string;
   fromNickname: string;
@@ -334,26 +341,50 @@ export async function createChallengeAndSync(input: {
   return c;
 }
 
-/** Clean invite URL — keep query minimal for messengers. */
-export function challengeShareUrl(challenge: Challenge): string {
-  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-  const url = new URL(`${window.location.origin}${base}/c/${challenge.id}`);
-  // Short seeds only — enough to open if sync lags
-  url.searchParams.set('n', challenge.fromNickname.slice(0, 12));
-  url.searchParams.set('r', String(challenge.targetReps));
-  url.searchParams.set('f', challenge.fromSoftUserId);
-  return url.toString();
+/** Short path code from challenge UUID — enough to resolve uniquely for this app. */
+export function challengeInviteCode(challengeId: string): string {
+  return challengeId.replace(/-/g, '').toLowerCase().slice(0, 10);
 }
 
-/** UI label — never print the full URL with query junk. */
+function normalizeInviteCode(raw: string): string {
+  return raw.replace(/-/g, '').toLowerCase();
+}
+
+function looksLikeUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+/** LIKE prefix for Postgres uuid::text when resolving short invite codes. */
+export function uuidLikePrefixFromCode(code: string): string | null {
+  const h = normalizeInviteCode(code);
+  if (h.length < 8) return null;
+  if (h.length === 8) return `${h}%`;
+  // 8 + rest → xxxxxxxx-yy…
+  return `${h.slice(0, 8)}-${h.slice(8)}%`;
+}
+
+/**
+ * Clean invite URL — short path, no query junk.
+ * Sync runs before share, so recipients load by code from the server.
+ * Legacy links with ?n&r&f still work on ChallengePage.
+ */
+export function challengeShareUrl(challenge: Challenge): string {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const code = challengeInviteCode(challenge.id);
+  return `${window.location.origin}${base}/c/${code}`;
+}
+
+/** UI label — same short link people will copy/share. */
 export function challengeShareUrlLabel(challenge: Challenge): string {
   try {
     const host = window.location.host.replace(/^www\./, '');
-    return `${host}/c/${challenge.id.slice(0, 8)}`;
+    return `${host}/c/${challengeInviteCode(challenge.id)}`;
   } catch {
-    return `oswan…/c/${challenge.id.slice(0, 8)}`;
+    return `oswan…/c/${challengeInviteCode(challenge.id)}`;
   }
 }
+
+export { looksLikeUuid, normalizeInviteCode };
 
 /** Rebuild invite from compact query when recipient has no local/remote copy. */
 export function challengeFromCompact(
